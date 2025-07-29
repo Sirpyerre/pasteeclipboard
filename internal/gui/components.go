@@ -9,6 +9,7 @@ import (
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"github.com/Sirpyerre/pasty-clipboard/internal/models"
+	"github.com/atotto/clipboard"
 )
 
 func CreateHistoryItemUI(item models.ClipboardItem, onDelete func(models.ClipboardItem)) fyne.CanvasObject {
@@ -27,7 +28,7 @@ func CreateHistoryItemUI(item models.ClipboardItem, onDelete func(models.Clipboa
 		typeIcon = widget.NewIcon(theme.QuestionIcon())
 	}
 
-	deleteButton := widget.NewButtonWithIcon("", theme.CancelIcon(), func() {
+	deleteButton := widget.NewButtonWithIcon("", theme.DeleteIcon(), func() {
 		if onDelete != nil {
 			onDelete(item)
 		}
@@ -43,7 +44,12 @@ func CreateHistoryItemUI(item models.ClipboardItem, onDelete func(models.Clipboa
 	background := canvas.NewRectangle(theme.BackgroundColor())
 
 	card := widget.NewButton("", func() {
-		fmt.Printf("Click item to copy: %s\n", item.Content)
+		err := clipboard.WriteAll(item.Content)
+		if err != nil {
+			fmt.Printf("error copying to clipboard: %s\n", err)
+		} else {
+			fmt.Printf(" copy content: %s\n", item.Content)
+		}
 	})
 	card.Importance = widget.LowImportance
 	card.SetText("")

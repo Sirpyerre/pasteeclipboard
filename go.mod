@@ -2,7 +2,10 @@ module github.com/Sirpyerre/pasty-clipboard
 
 go 1.24.3
 
-require fyne.io/fyne/v2 v2.6.1
+require (
+	fyne.io/fyne/v2 v2.6.1
+	github.com/atotto/clipboard v0.1.4
+)
 
 require (
 	fyne.io/systray v1.11.0 // indirect
