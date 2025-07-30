@@ -94,17 +94,20 @@ func (p *PastyClipboard) setupUI() {
 func (p *PastyClipboard) updateHistoryUI() {
 	fyne.Do(func() {
 		p.historyContainer.RemoveAll()
+
 		for _, item := range p.clipboardHistory {
 			p.historyContainer.Add(CreateHistoryItemUI(item, func(deletedItem models.ClipboardItem) {
-				_ = database.DeleteClipboardItem(deletedItem.Content)
+				_ = database.DeleteClipboardItem(item.ID)
+
 				var newHistory []models.ClipboardItem
 				for _, hItem := range p.clipboardHistory {
-					if hItem != deletedItem {
+					if hItem.ID != deletedItem.ID {
 						newHistory = append(newHistory, hItem)
 					}
 				}
-				p.clipboardHistory = newHistory
 
+				p.clipboardHistory = newHistory
+				p.updateHistoryUI()
 			}))
 		}
 

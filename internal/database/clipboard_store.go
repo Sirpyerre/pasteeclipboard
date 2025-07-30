@@ -2,6 +2,7 @@ package database
 
 import (
 	"github.com/Sirpyerre/pasty-clipboard/internal/models"
+	"log"
 	"time"
 )
 
@@ -37,8 +38,11 @@ func GetClipboardHistory(limit int) ([]models.ClipboardItem, error) {
 	return items, nil
 }
 
-func DeleteClipboardItem(content string) error {
-	stmt := `DELETE FROM clipboard_history WHERE content = ?`
-	_, err := db.Exec(stmt, content)
+func DeleteClipboardItem(id int) error {
+	stmt := `DELETE FROM clipboard_history WHERE id = ?`
+	_, err := db.Exec(stmt, id)
+
+	log.Println("Deleted item with id:", id)
+
 	return err
 }
