@@ -8,11 +8,15 @@ import (
 	"time"
 )
 
-var lastContent string
-
 func StartClipboardMonitor(onNewItem func(models.ClipboardItem)) {
 	go func() {
 		for {
+			if ignoreNextRead {
+				ignoreNextRead = false
+				time.Sleep(500 * time.Millisecond)
+				continue
+			}
+
 			content, err := clipboard.ReadAll()
 			if err != nil {
 				log.Println("error reading clipboard:", err)
@@ -21,14 +25,14 @@ func StartClipboardMonitor(onNewItem func(models.ClipboardItem)) {
 
 			if content != "" && content != lastContent {
 				lastContent = content
-				log.Println("New clipboard content:", content)
-				err = database.InsertClipboardItem(content, "text") // Suponemos solo texto por ahora
+				id, err := database.InsertClipboardItem(content, "text") // Suponemos solo texto por ahora
 				if err != nil {
 					log.Println("error inserting clipboard item:", err)
 				}
 
 				items, err := database.GetClipboardHistory(1)
 				if err == nil && len(items) > 0 {
+					items[0].ID = int(id)
 					onNewItem(items[0])
 				}
 			}

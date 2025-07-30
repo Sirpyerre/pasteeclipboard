@@ -7,8 +7,8 @@ import (
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
-	"github.com/Sirpyerre/pasty-clipboard/internal/database"
 	"github.com/Sirpyerre/pasty-clipboard/internal/models"
+	"github.com/Sirpyerre/pasty-clipboard/internal/monitor"
 	"github.com/atotto/clipboard"
 	"image/color"
 	"log"
@@ -51,8 +51,9 @@ func CreateHistoryItemUI(item models.ClipboardItem, onDelete func(models.Clipboa
 		if err != nil {
 			log.Printf("error copying to clipboard: %s\n", err)
 		} else {
+			monitor.IgnoreNextClipboardRead()
+			monitor.SetLastClipboardContent(item.Content)
 			log.Printf("Contenido copiado: %s\n", item.Content)
-			_ = database.InsertClipboardItem(item.Content, item.Type)
 		}
 	})
 	card.Importance = widget.LowImportance

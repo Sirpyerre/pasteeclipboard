@@ -13,14 +13,23 @@ type ClipboardItemDB struct {
 	CreatedAt time.Time
 }
 
-func InsertClipboardItem(content, itemType string) error {
-	stmt := `INSERT INTO clipboard_history (content, type) VALUES (?, ?)`
-	_, err := db.Exec(stmt, content, itemType)
-	return err
+func InsertClipboardItem(content, itemType string) (int64, error) {
+	stmt, err := db.Prepare(`INSERT INTO clipboard_history (content, type) VALUES (?, ?)`)
+	if err != nil {
+		return 0, err
+	}
+	defer stmt.Close()
+
+	res, err := stmt.Exec(content, itemType)
+	if err != nil {
+		return 0, err
+	}
+
+	return res.LastInsertId()
 }
 
 func GetClipboardHistory(limit int) ([]models.ClipboardItem, error) {
-	stmt := `SELECT content, type FROM clipboard_history ORDER BY created_at DESC LIMIT ?`
+	stmt := `SELECT id, content, type FROM clipboard_history ORDER BY created_at DESC LIMIT ?`
 	rows, err := db.Query(stmt, limit)
 	if err != nil {
 		return nil, err
@@ -30,7 +39,7 @@ func GetClipboardHistory(limit int) ([]models.ClipboardItem, error) {
 	var items []models.ClipboardItem
 	for rows.Next() {
 		var item models.ClipboardItem
-		if err := rows.Scan(&item.Content, &item.Type); err != nil {
+		if err := rows.Scan(&item.ID, &item.Content, &item.Type); err != nil {
 			return nil, err
 		}
 		items = append(items, item)
