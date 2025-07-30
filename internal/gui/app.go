@@ -8,7 +8,10 @@ import (
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
+	"github.com/Sirpyerre/pasty-clipboard/internal/database"
 	"github.com/Sirpyerre/pasty-clipboard/internal/models"
+	"github.com/Sirpyerre/pasty-clipboard/internal/monitor"
+	"log"
 )
 
 type PastyClipboard struct {
@@ -20,34 +23,30 @@ type PastyClipboard struct {
 }
 
 func NewPastyClipboard(a fyne.App) *PastyClipboard {
+	if _, err := database.InitDB(); err != nil {
+		log.Fatal("error initializing database:", err)
+	}
+
+	monitor.StartClipboardMonitor()
+
+	items, err := database.GetClipboardHistory(100)
+	if err != nil {
+		log.Fatal("error getting clipboard history:", err)
+	}
+
 	p := &PastyClipboard{
-		App: a,
-		Win: a.NewWindow("Clipboard Manager"),
+		App:              a,
+		Win:              a.NewWindow("Clipboard Manager"),
+		clipboardHistory: items,
 	}
 
 	p.Win.Resize(fyne.NewSize(400, 500))
-
-	// dummy data
-	p.clipboardHistory = []models.ClipboardItem{
-		{Content: "this is yet another test", Type: "text"},
-		{Content: "https://www.youtube.com/watch?v=s1-StA1w3Ae", Type: "link"},
-		{Content: "test test test", Type: "text"},
-		{Content: "Go Fyne GUI example", Type: "text"},
-		{Content: "https://fyne.io/", Type: "link"},
-		{Content: "Another piece of text copied", Type: "text"},
-		{Content: "https://github.com/fyne-io/fyne", Type: "link"},
-		{Content: "Short text entry", Type: "text"},
-		{Content: "More content here to test scrolling", Type: "text"},
-		{Content: "https://www.google.com", Type: "link"},
-		{Content: "Final test entry for history", Type: "text"},
-	}
-
 	p.setupUI()
+
 	return p
 }
 
 func (p *PastyClipboard) setupUI() {
-	//titleLabel := widget.NewLabel("Pasty Clipboard Manager")
 	titleLabel := canvas.NewText("Pasty Clipboard Manager", theme.TextColor())
 	titleLabel.TextStyle = fyne.TextStyle{Bold: true}
 	titleLabel.Alignment = fyne.TextAlignCenter
@@ -133,6 +132,7 @@ func (p *PastyClipboard) updateHistoryUI() {
 		p.historyContainer.RemoveAll()
 		for _, item := range p.clipboardHistory {
 			p.historyContainer.Add(CreateHistoryItemUI(item, func(deletedItem models.ClipboardItem) {
+				_ = database.DeleteClipboardItem(deletedItem.Content)
 				var newHistory []models.ClipboardItem
 				for _, hItem := range p.clipboardHistory {
 					if hItem != deletedItem {
