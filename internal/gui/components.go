@@ -44,7 +44,7 @@ func CreateHistoryItemUI(item models.ClipboardItem, onDelete func(models.Clipboa
 		deleteButton,
 	)
 
-	background := canvas.NewRectangle(theme.BackgroundColor()) // gray
+	background := canvas.NewRectangle(theme.BackgroundColor())
 
 	card := widget.NewButton("", func() {
 		err := clipboard.WriteAll(item.Content)

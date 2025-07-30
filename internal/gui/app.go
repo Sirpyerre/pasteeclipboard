@@ -3,9 +3,7 @@ package gui
 import (
 	"fmt"
 	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"github.com/Sirpyerre/pasty-clipboard/internal/database"
@@ -57,81 +55,37 @@ func NewPastyClipboard(a fyne.App) *PastyClipboard {
 }
 
 func (p *PastyClipboard) setupUI() {
-	titleLabel := canvas.NewText("Pasty Clipboard Manager", theme.TextColor())
-	titleLabel.TextStyle = fyne.TextStyle{Bold: true}
-	titleLabel.Alignment = fyne.TextAlignCenter
+	// top search bar
+	searchEntry := widget.NewEntry()
+	searchEntry.SetPlaceHolder("Search")
+	searchEntry.OnChanged = func(s string) {
+		fmt.Printf("Searching: %s\n", s)
+		// Implementar filtro aquí si se desea
+	}
+	searchIcon := widget.NewIcon(theme.SearchIcon())
+	searchBar := container.NewBorder(nil, nil, searchIcon, nil, searchEntry)
 
-	clearAllButton := widget.NewButton("Clear All", func() {
+	p.historyContainer = container.NewVBox()
+	p.updateHistoryUI()
+	scrollableHistory := container.NewScroll(p.historyContainer)
+	scrollableHistory.SetMinSize(fyne.NewSize(300, 400))
+
+	// bottom bar
+	clearAllButton := widget.NewButtonWithIcon("Clear All", theme.DeleteIcon(), func() {
 		fmt.Println("Clear all button pressed.")
 		p.clipboardHistory = []models.ClipboardItem{}
 		p.updateHistoryUI()
 	})
 	clearAllButton.Importance = widget.LowImportance
 
-	clipIcon := widget.NewIcon(theme.ContentCopyIcon())
-	heartIcon := widget.NewLabel("❤️")
-	smileyIcon := widget.NewLabel("😊")
-	gifIcon := widget.NewLabel("GIF")
+	clearBar := container.NewCenter(clearAllButton)
 
-	topBarLeftIcons := container.NewHBox(
-		clipIcon,
-		widget.NewSeparator(),
-		heartIcon,
-		smileyIcon,
-		gifIcon,
-	)
-
-	topBar := container.New(layout.NewBorderLayout(nil, nil, topBarLeftIcons, clearAllButton),
-		topBarLeftIcons,
-		titleLabel,
-		clearAllButton,
-	)
-
-	topBarWithBackground := container.NewStack(
-		canvas.NewRectangle(theme.BackgroundColor()),
-		topBar,
-	)
-
-	p.counterLabel = widget.NewLabel("(0)")
-	p.historyContainer = container.NewVBox()
-	p.updateHistoryUI()
-	scrollableHistory := container.NewScroll(p.historyContainer)
-
-	searchEntry := widget.NewEntry()
-	searchEntry.SetPlaceHolder("Search")
-	searchEntry.OnChanged = func(s string) {
-		fmt.Printf("Buscando: %s\n", s)
-		// Implementar filtro aquí si se desea
-	}
-
-	searchIcon := widget.NewIcon(theme.SearchIcon())
-	searchBox := container.NewHBox(searchIcon, searchEntry)
-
-	trackChangesSwitch := widget.NewCheck("Track changes", func(b bool) {
-		if b {
-			fmt.Println("Follow changes: Activated")
-		} else {
-			fmt.Println("Follow changes: Deactivated")
-		}
-	})
-
-	p.counterLabel = widget.NewLabel(fmt.Sprintf("(%d)", len(p.clipboardHistory)))
-
-	bottomBar := container.New(layout.NewBorderLayout(nil, nil, searchBox, container.NewHBox(trackChangesSwitch, p.counterLabel)),
-		searchBox,
-		trackChangesSwitch,
-		p.counterLabel,
-	)
-
-	bottomBarWithBackground := container.NewStack(
-		canvas.NewRectangle(theme.BackgroundColor()),
-		bottomBar,
-	)
-
-	content := container.New(layout.NewBorderLayout(topBarWithBackground, bottomBarWithBackground, nil, nil),
-		topBarWithBackground,
-		bottomBarWithBackground,
-		scrollableHistory,
+	content := container.NewBorder(
+		searchBar,         // Top
+		clearBar,          // Bottom
+		nil,               // Left
+		nil,               // Right
+		scrollableHistory, // Center
 	)
 
 	p.Win.SetContent(content)
@@ -150,15 +104,11 @@ func (p *PastyClipboard) updateHistoryUI() {
 					}
 				}
 				p.clipboardHistory = newHistory
-				fyne.Do(func() {
-					p.historyContainer.Refresh()
-					p.counterLabel.SetText(fmt.Sprintf("(%d)", len(p.clipboardHistory)))
-				})
+
 			}))
 		}
 
 		p.historyContainer.Refresh()
-		p.counterLabel.SetText(fmt.Sprintf("(%d)", len(p.clipboardHistory)))
 	})
 }
 
