@@ -27,8 +27,6 @@ func NewPastyClipboard(a fyne.App) *PastyClipboard {
 		log.Fatal("error initializing database:", err)
 	}
 
-	monitor.StartClipboardMonitor()
-
 	items, err := database.GetClipboardHistory(100)
 	if err != nil {
 		log.Fatal("error getting clipboard history:", err)
@@ -42,6 +40,18 @@ func NewPastyClipboard(a fyne.App) *PastyClipboard {
 
 	p.Win.Resize(fyne.NewSize(400, 500))
 	p.setupUI()
+
+	monitor.StartClipboardMonitor(func(newItem models.ClipboardItem) {
+		fyne.CurrentApp().SendNotification(&fyne.Notification{
+			Title:   "New Clipboard Item",
+			Content: newItem.Content,
+		})
+
+		fyne.Do(func() {
+			p.clipboardHistory = append([]models.ClipboardItem{newItem}, p.clipboardHistory...)
+			p.updateHistoryUI()
+		})
+	})
 
 	return p
 }

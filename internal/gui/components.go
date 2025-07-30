@@ -1,7 +1,6 @@
 package gui
 
 import (
-	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
@@ -11,11 +10,14 @@ import (
 	"github.com/Sirpyerre/pasty-clipboard/internal/database"
 	"github.com/Sirpyerre/pasty-clipboard/internal/models"
 	"github.com/atotto/clipboard"
+	"image/color"
+	"log"
 )
 
 func CreateHistoryItemUI(item models.ClipboardItem, onDelete func(models.ClipboardItem)) fyne.CanvasObject {
-	contentLabel := widget.NewLabel(item.Content)
-	contentLabel.Wrapping = fyne.TextWrapBreak
+	contentLabel := widget.NewLabelWithStyle(item.Content, fyne.TextAlignLeading, fyne.TextStyle{Monospace: false})
+	contentLabel.Wrapping = fyne.TextTruncate
+	contentLabel.Resize(fyne.NewSize(300, 60))
 
 	var typeIcon fyne.CanvasObject
 	switch item.Type {
@@ -42,25 +44,27 @@ func CreateHistoryItemUI(item models.ClipboardItem, onDelete func(models.Clipboa
 		deleteButton,
 	)
 
-	background := canvas.NewRectangle(theme.BackgroundColor())
+	background := canvas.NewRectangle(theme.BackgroundColor()) // gray
 
 	card := widget.NewButton("", func() {
 		err := clipboard.WriteAll(item.Content)
 		if err != nil {
-			fmt.Printf("error copying to clipboard: %s\n", err)
+			log.Printf("error copying to clipboard: %s\n", err)
 		} else {
-			fmt.Printf("Contenido copiado: %s\n", item.Content)
+			log.Printf("Contenido copiado: %s\n", item.Content)
 			_ = database.InsertClipboardItem(item.Content, item.Type)
 		}
 	})
 	card.Importance = widget.LowImportance
 	card.SetText("")
 
-	return container.NewStack(
-		background,
-		container.NewPadded(itemContent),
-		card,
-		itemContent,
+	return container.NewVBox(
+		container.NewStack(
+			background,
+			container.NewPadded(itemContent),
+			card,
+			itemContent,
+		),
+		canvas.NewLine(color.Gray{Y: 0xCC}), // separator
 	)
-
 }
