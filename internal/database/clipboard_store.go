@@ -1,7 +1,7 @@
 package database
 
 import (
-	"github.com/Sirpyerre/pasty-clipboard/internal/models"
+	"github.com/Sirpyerre/pasteeclipboard/internal/models"
 	"log"
 	"time"
 )

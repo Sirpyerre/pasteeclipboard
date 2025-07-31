@@ -1,8 +1,8 @@
 package monitor
 
 import (
-	"github.com/Sirpyerre/pasty-clipboard/internal/database"
-	"github.com/Sirpyerre/pasty-clipboard/internal/models"
+	"github.com/Sirpyerre/pasteeclipboard/internal/database"
+	"github.com/Sirpyerre/pasteeclipboard/internal/models"
 	"github.com/atotto/clipboard"
 	"log"
 	"time"

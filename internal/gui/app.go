@@ -6,9 +6,9 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
-	"github.com/Sirpyerre/pasty-clipboard/internal/database"
-	"github.com/Sirpyerre/pasty-clipboard/internal/models"
-	"github.com/Sirpyerre/pasty-clipboard/internal/monitor"
+	"github.com/Sirpyerre/pasteeclipboard/internal/database"
+	"github.com/Sirpyerre/pasteeclipboard/internal/models"
+	"github.com/Sirpyerre/pasteeclipboard/internal/monitor"
 	"log"
 	"strings"
 )
