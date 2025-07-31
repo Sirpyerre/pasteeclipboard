@@ -55,3 +55,8 @@ func DeleteClipboardItem(id int) error {
 
 	return err
 }
+
+func DeleteAllClipboardItems() error {
+	_, err := db.Exec("DELETE FROM clipboard_history")
+	return err
+}

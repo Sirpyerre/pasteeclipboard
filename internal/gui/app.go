@@ -1,15 +1,16 @@
 package gui
 
 import (
-	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"github.com/Sirpyerre/pasty-clipboard/internal/database"
 	"github.com/Sirpyerre/pasty-clipboard/internal/models"
 	"github.com/Sirpyerre/pasty-clipboard/internal/monitor"
 	"log"
+	"strings"
 )
 
 type PastyClipboard struct {
@@ -47,7 +48,7 @@ func NewPastyClipboard(a fyne.App) *PastyClipboard {
 
 		fyne.Do(func() {
 			p.clipboardHistory = append([]models.ClipboardItem{newItem}, p.clipboardHistory...)
-			p.updateHistoryUI()
+			p.updateHistoryUI("")
 		})
 	})
 
@@ -57,31 +58,45 @@ func NewPastyClipboard(a fyne.App) *PastyClipboard {
 func (p *PastyClipboard) setupUI() {
 	// top search bar
 	searchEntry := widget.NewEntry()
-	searchEntry.SetPlaceHolder("Search")
+	searchEntry.SetPlaceHolder("Search ...")
+
+	clearSearchIcon := widget.NewButtonWithIcon("", theme.CancelIcon(), func() {
+		searchEntry.SetText("")
+		p.updateHistoryUI("") // Mostrar todo
+	})
+	clearSearchIcon.Importance = widget.LowImportance
+
 	searchEntry.OnChanged = func(s string) {
-		fmt.Printf("Searching: %s\n", s)
-		// Implementar filtro aquí si se desea
+		p.updateHistoryUI(s)
 	}
 	searchIcon := widget.NewIcon(theme.SearchIcon())
-	searchBar := container.NewBorder(nil, nil, searchIcon, nil, searchEntry)
+	searchBox := container.NewBorder(nil, nil, searchIcon, clearSearchIcon, searchEntry)
 
 	p.historyContainer = container.NewVBox()
-	p.updateHistoryUI()
+	p.updateHistoryUI("")
 	scrollableHistory := container.NewScroll(p.historyContainer)
 	scrollableHistory.SetMinSize(fyne.NewSize(300, 400))
 
 	// bottom bar
 	clearAllButton := widget.NewButtonWithIcon("Clear All", theme.DeleteIcon(), func() {
-		fmt.Println("Clear all button pressed.")
-		p.clipboardHistory = []models.ClipboardItem{}
-		p.updateHistoryUI()
+		dialog.ShowConfirm("Confirm Delete", "Are you sure you cant to delete all history", func(confirm bool) {
+			if confirm {
+				if err := database.DeleteAllClipboardItems(); err != nil {
+					log.Fatal("error deleting clipboard history:", err)
+					return
+				}
+				p.clipboardHistory = []models.ClipboardItem{}
+				p.updateHistoryUI("")
+			}
+		}, p.Win)
+
 	})
 	clearAllButton.Importance = widget.LowImportance
 
 	clearBar := container.NewCenter(clearAllButton)
 
 	content := container.NewBorder(
-		searchBar,         // Top
+		searchBox,         // Top
 		clearBar,          // Bottom
 		nil,               // Left
 		nil,               // Right
@@ -91,24 +106,27 @@ func (p *PastyClipboard) setupUI() {
 	p.Win.SetContent(content)
 }
 
-func (p *PastyClipboard) updateHistoryUI() {
+func (p *PastyClipboard) updateHistoryUI(query string) {
 	fyne.Do(func() {
 		p.historyContainer.RemoveAll()
 
 		for _, item := range p.clipboardHistory {
-			p.historyContainer.Add(CreateHistoryItemUI(item, func(deletedItem models.ClipboardItem) {
-				_ = database.DeleteClipboardItem(item.ID)
+			if query == "" || strings.Contains(strings.ToLower(item.Content), strings.ToLower(query)) {
 
-				var newHistory []models.ClipboardItem
-				for _, hItem := range p.clipboardHistory {
-					if hItem.ID != deletedItem.ID {
-						newHistory = append(newHistory, hItem)
+				p.historyContainer.Add(CreateHistoryItemUI(item, func(deletedItem models.ClipboardItem) {
+					_ = database.DeleteClipboardItem(item.ID)
+
+					var newHistory []models.ClipboardItem
+					for _, hItem := range p.clipboardHistory {
+						if hItem.ID != deletedItem.ID {
+							newHistory = append(newHistory, hItem)
+						}
 					}
-				}
 
-				p.clipboardHistory = newHistory
-				p.updateHistoryUI()
-			}))
+					p.clipboardHistory = newHistory
+					p.updateHistoryUI(query)
+				}))
+			}
 		}
 
 		p.historyContainer.Refresh()
