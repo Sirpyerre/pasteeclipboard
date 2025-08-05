@@ -38,6 +38,7 @@ require (
 	github.com/stretchr/testify v1.10.0 // indirect
 	github.com/vcaesar/keycode v0.10.1 // indirect
 	github.com/yuin/goldmark v1.7.8 // indirect
+	golang.design/x/hotkey v0.4.1 // indirect
 	golang.org/x/image v0.24.0 // indirect
 	golang.org/x/net v0.35.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect

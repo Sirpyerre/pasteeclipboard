@@ -9,7 +9,7 @@ import (
 	"fyne.io/fyne/v2/driver/desktop"
 
 	"github.com/Sirpyerre/pasteeclipboard/internal/gui"
-	hook "github.com/robotn/gohook"
+	"golang.design/x/hotkey"
 )
 
 //go:embed assets/pastee32x32nobackground.png
@@ -22,22 +22,32 @@ func main() {
 	var isWindowVisible bool
 
 	// register globar shortcut
-	log.Println("--- Adding shortcut. Press CTRL+ALT+P to show window. ---")
-	hook.Register(hook.KeyDown, []string{"ctrl", "alt", "p"}, func(e hook.Event) {
-		log.Println("Shortcut Ctrl+ALT+P detected!")
-		if !isWindowVisible {
-			pastyApp.Win.Show()
-			isWindowVisible = true
-			pastyApp.Win.RequestFocus()
-		} else {
-			pastyApp.Win.Hide()
-			isWindowVisible = false
-		}
-	})
+	hk := hotkey.New([]hotkey.Modifier{hotkey.ModCtrl, hotkey.ModOption}, hotkey.KeyP)
 
-	// start the keyboard listener
-	hook.Start()
-	defer hook.End()
+	go func() {
+		log.Println("--- Adding shortcut. Press CTRL+ALT+P to show window. ---")
+		err := hk.Register()
+		if err != nil {
+			log.Println("Error registering shortcut:", err)
+			return
+		}
+
+		for range hk.Keydown() {
+			log.Println("Shortcut pressed")
+
+			fyne.Do(func() {
+				if !isWindowVisible {
+					pastyApp.Win.Show()
+					isWindowVisible = true
+					pastyApp.Win.RequestFocus()
+				} else {
+					pastyApp.Win.Hide()
+					isWindowVisible = false
+				}
+			})
+		}
+
+	}()
 
 	if desk, ok := a.(desktop.App); ok {
 		showHideItem := fyne.NewMenuItem("Show/Hide", func() {
@@ -53,7 +63,6 @@ func main() {
 		quitItem := fyne.NewMenuItem("Quit", func() {
 			log.Println("Exiting...")
 			// a.Quit()
-			hook.End()
 			pastyApp.App.Quit()
 			a.Quit()
 		})
@@ -64,7 +73,6 @@ func main() {
 	}
 
 	pastyApp.Win.Resize(fyne.NewSize(400, 600))
-
 	pastyApp.Win.SetCloseIntercept(func() {
 		pastyApp.Win.Hide()
 		isWindowVisible = false
