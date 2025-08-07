@@ -62,7 +62,7 @@ func (p *PastyClipboard) setupUI() {
 
 	clearSearchIcon := widget.NewButtonWithIcon("", theme.CancelIcon(), func() {
 		searchEntry.SetText("")
-		p.updateHistoryUI("") // Mostrar todo
+		p.updateHistoryUI("")
 	})
 	clearSearchIcon.Importance = widget.LowImportance
 

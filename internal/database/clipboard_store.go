@@ -2,7 +2,6 @@ package database
 
 import (
 	"github.com/Sirpyerre/pasteeclipboard/internal/models"
-	"log"
 	"time"
 )
 
@@ -50,8 +49,6 @@ func GetClipboardHistory(limit int) ([]models.ClipboardItem, error) {
 func DeleteClipboardItem(id int) error {
 	stmt := `DELETE FROM clipboard_history WHERE id = ?`
 	_, err := db.Exec(stmt, id)
-
-	log.Println("Deleted item with id:", id)
 
 	return err
 }
