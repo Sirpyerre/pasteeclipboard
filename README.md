@@ -12,12 +12,22 @@
 ## ✨ Features
 
 - System tray integration with context menu
+<img src="https://res.cloudinary.com/dtbpucouh/image/upload/v1754591393/pasteeclipboard/system-tray_rumip6.png">
+
+<img src="https://res.cloudinary.com/dtbpucouh/image/upload/v1754591347/pasteeclipboard/menu-system-tray_pbkdiz.png">
+
 - Global shortcut (`Ctrl+Alt+P`) to show/hide the clipboard history window
+<img src="https://res.cloudinary.com/dtbpucouh/image/upload/v1754591347/pasteeclipboard/main-window_d9pxlx.png">
 - Persistent clipboard history using SQLite
 - Simple and intuitive UI built with [Fyne](https://fyne.io)
 - One-click to copy, delete, or clear items
 - Filtering and search functionality
+
+<img src="https://res.cloudinary.com/dtbpucouh/image/upload/v1754591347/pasteeclipboard/filter-string-pastee_lpdjar.png">
+
 - Option to clear entire history with confirmation
+
+<img src="https://res.cloudinary.com/dtbpucouh/image/upload/v1754591346/pasteeclipboard/clear-all-pastee-history_lppoe6.png">
 
 ---
 
