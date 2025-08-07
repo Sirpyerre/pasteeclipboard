@@ -18,6 +18,7 @@
 
 - Global shortcut (`Ctrl+Alt+P`) to show/hide the clipboard history window
 <img src="https://res.cloudinary.com/dtbpucouh/image/upload/v1754591347/pasteeclipboard/main-window_d9pxlx.png">
+
 - Persistent clipboard history using SQLite
 - Simple and intuitive UI built with [Fyne](https://fyne.io)
 - One-click to copy, delete, or clear items
