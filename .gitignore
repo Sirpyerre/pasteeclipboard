@@ -1,3 +1,5 @@
 vendor/
 data/
 bin/
+.idea/
+.vscode/

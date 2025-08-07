@@ -156,5 +156,5 @@ Feel free to open issues, suggest features, or submit pull requests. All contrib
 
 ## 👨‍💻 Author
 
-Developed by @sirpyerre
+Developed by [@sirpyerre](www.linkedin.com/in/sirpyerre)
 Made with Go + Fyne in Mexico 🇲🇽
