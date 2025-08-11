@@ -12,17 +12,24 @@ export GOARCH
 export EXE
 
 ifeq ($(OS),Windows_NT)
-	UNAME_M := $(PROCESSOR_ARCHITECTURE)
+	PROC_ARCH := $(PROCESSOR_ARCHITECTURE)
 	GOOS := windows
 	EXE := .exe
 	SHELL := cmd
 	MKDIR := if not exist $(BUILD_DIR) mkdir $(BUILD_DIR)
-	SETEVARS := set GOOS=$(GOOS) && set GOARCH=$(GOARCH) &&
-	ifeq ($(UNAME_M),ARM64)
+
+	# Detect architecture
+	ifeq ($(PROC_ARCH),ARM64)
 		GOARCH := arm64
+	else ifeq ($(PROC_ARCH),AMD64)
+		GOARCH := amd64
+	else ifeq ($(PROC_ARCH),x86)
+		GOARCH := 386
 	else
 		GOARCH := amd64
 	endif
+
+	SETEVARS := set GOOS=$(GOOS) && set GOARCH=$(GOARCH) &&
 else
 	UNAME_S := $(shell uname -s)
 	UNAME_M := $(shell uname -m)
