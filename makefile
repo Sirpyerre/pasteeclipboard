@@ -7,19 +7,22 @@ GOOS ?=
 GOARCH ?=
 EXE ?=
 
-# Export so child processes see them
 export GOOS
 export GOARCH
 export EXE
 
-# Detect OS/Arch
 ifeq ($(OS),Windows_NT)
+	UNAME_M := $(PROCESSOR_ARCHITECTURE)
 	GOOS := windows
-	GOARCH := amd64
 	EXE := .exe
 	SHELL := cmd
 	MKDIR := if not exist $(BUILD_DIR) mkdir $(BUILD_DIR)
 	SETEVARS := set GOOS=$(GOOS) && set GOARCH=$(GOARCH) &&
+	ifeq ($(UNAME_M),ARM64)
+		GOARCH := arm64
+	else
+		GOARCH := amd64
+	endif
 else
 	UNAME_S := $(shell uname -s)
 	UNAME_M := $(shell uname -m)
