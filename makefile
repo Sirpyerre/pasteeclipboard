@@ -7,6 +7,10 @@ GOOS ?=
 GOARCH ?=
 EXE ?=
 
+# Export so child processes (go build) see them on all shells
+export GOOS
+export GOARCH
+export EXE
 
 # OS/arch detection
 ifeq ($(OS), Windows_NT)
