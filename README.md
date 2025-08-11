@@ -3,7 +3,9 @@
 <div align="center">
   <img src="https://res.cloudinary.com/dtbpucouh/image/upload/v1754584625/pasteeclipboard/passtee_logo_wcinyp.png" alt="passtee clipboard" width="300">
 </div>
-
+<p align="center">
+  <strong>Version:</strong> v0.1.0
+</p>
 
 **Pastee Clipboard** is a lightweight clipboard manager that lives in your system tray, allowing you to monitor and reuse your clipboard history with ease. Designed with productivity in mind, Pastee is optimized for **macOS Sequoia (15.6)** and integrates seamlessly with system-level shortcuts.
 
@@ -150,6 +152,18 @@ To rebuild after changes:
 ```bash
 make clean && make
 ```
+
+## Versioning
+Current version v0.1.0
+
+# Changelog
+**v0.1.0 - Initial Release**
+- 🎉 Basic UI with Fyne
+- 📋 Clipboard monitoring and persistent history
+- 🔍 Filtering support
+- 🧹 Delete single or all entries
+- 🖱️ System tray integration (macOS)
+- ⌨️ Global keyboard shortcut (Ctrl+Alt+P) to show/hide window
 
 ---
 
