@@ -12,7 +12,14 @@ import (
 var db *sql.DB
 
 func InitDB() (*sql.DB, error) {
-	err := os.MkdirAll("data", os.ModePerm)
+	exePath, err := os.Executable()
+	if err != nil {
+		return nil, err
+	}
+	exeDir := filepath.Dir(exePath)
+
+	dataDir := filepath.Join(exeDir, "data")
+	err = os.MkdirAll(dataDir, os.ModePerm)
 	if err != nil {
 		return nil, err
 	}

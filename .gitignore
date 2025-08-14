@@ -3,3 +3,7 @@ data/
 bin/
 .idea/
 .vscode/
+build/
+*.app/
+.DS_Store
+**/.DS_Store

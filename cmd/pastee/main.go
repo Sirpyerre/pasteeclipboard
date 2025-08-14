@@ -56,6 +56,7 @@ func main() {
 				isWindowVisible = false
 			} else {
 				pastyApp.Win.Show()
+				pastyApp.Win.RequestFocus()
 				isWindowVisible = true
 			}
 		})
