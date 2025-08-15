@@ -10,8 +10,25 @@ import (
 	"github.com/Sirpyerre/pasteeclipboard/internal/models"
 	"github.com/Sirpyerre/pasteeclipboard/internal/monitor"
 	"log"
+	"math"
+	"strconv"
 	"strings"
 )
+
+// Constants for UI strings and values
+const (
+	placeholderText    = "Search ..."
+	clearAllBtnText    = "Clear All"
+	showLabelText      = "Show:"
+	prevBtnText        = "Previous"
+	nextBtnText        = "Next"
+	confirmDeleteTitle = "Confirm Delete"
+	confirmDeleteMsg   = "Are you sure you want to delete all history?"
+	noHistoryText      = "No clipboard history available."
+)
+
+// Constant for pagination options
+var pageSizeOptions = []string{"10", "20", "50", "100"}
 
 type PastyClipboard struct {
 	App              fyne.App
@@ -19,6 +36,13 @@ type PastyClipboard struct {
 	historyContainer *fyne.Container
 	counterLabel     *widget.Label
 	clipboardHistory []models.ClipboardItem
+
+	currentPage    int
+	pageSize       int
+	pageLabel      *widget.Label
+	prevButton     *widget.Button
+	nextButton     *widget.Button
+	pageSizeSelect *widget.Select
 }
 
 func NewPastyClipboard(a fyne.App) *PastyClipboard {
@@ -33,7 +57,7 @@ func NewPastyClipboard(a fyne.App) *PastyClipboard {
 
 	p := &PastyClipboard{
 		App:              a,
-		Win:              a.NewWindow("Clipboard Manager"),
+		Win:              a.NewWindow("Pastee Clipboard"),
 		clipboardHistory: items,
 	}
 
@@ -56,48 +80,22 @@ func NewPastyClipboard(a fyne.App) *PastyClipboard {
 }
 
 func (p *PastyClipboard) setupUI() {
-	// top search bar
-	searchEntry := widget.NewEntry()
-	searchEntry.SetPlaceHolder("Search ...")
-
-	clearSearchIcon := widget.NewButtonWithIcon("", theme.CancelIcon(), func() {
-		searchEntry.SetText("")
-		p.updateHistoryUI("")
-	})
-	clearSearchIcon.Importance = widget.LowImportance
-
-	searchEntry.OnChanged = func(s string) {
-		p.updateHistoryUI(s)
-	}
-	searchIcon := widget.NewIcon(theme.SearchIcon())
-	searchBox := container.NewBorder(nil, nil, searchIcon, clearSearchIcon, searchEntry)
+	searchBox := p.SearchBox()
 
 	p.historyContainer = container.NewVBox()
+
+	p.currentPage = 1
+	p.pageSize = 10
+
 	p.updateHistoryUI("")
 	scrollableHistory := container.NewScroll(p.historyContainer)
 	scrollableHistory.SetMinSize(fyne.NewSize(300, 400))
 
-	// bottom bar
-	clearAllButton := widget.NewButtonWithIcon("Clear All", theme.DeleteIcon(), func() {
-		dialog.ShowConfirm("Confirm Delete", "Are you sure you cant to delete all history", func(confirm bool) {
-			if confirm {
-				if err := database.DeleteAllClipboardItems(); err != nil {
-					log.Fatal("error deleting clipboard history:", err)
-					return
-				}
-				p.clipboardHistory = []models.ClipboardItem{}
-				p.updateHistoryUI("")
-			}
-		}, p.Win)
-
-	})
-	clearAllButton.Importance = widget.LowImportance
-
-	clearBar := container.NewCenter(clearAllButton)
+	bottomBar := p.BottomBar()
 
 	content := container.NewBorder(
 		searchBox,         // Top
-		clearBar,          // Bottom
+		bottomBar,         // Bottom
 		nil,               // Left
 		nil,               // Right
 		scrollableHistory, // Center
@@ -133,6 +131,100 @@ func (p *PastyClipboard) updateHistoryUI(query string) {
 	})
 }
 
+func (p *PastyClipboard) SearchBox() *fyne.Container {
+	searchEntry := widget.NewEntry()
+	searchEntry.SetPlaceHolder(placeholderText)
+
+	clearSearchIcon := widget.NewButtonWithIcon("", theme.CancelIcon(), func() {
+		searchEntry.SetText("")
+		p.updateHistoryUI("")
+	})
+	clearSearchIcon.Importance = widget.LowImportance
+
+	searchEntry.OnChanged = func(s string) {
+		p.updateHistoryUI(s)
+	}
+	searchIcon := widget.NewIcon(theme.SearchIcon())
+
+	return container.NewBorder(nil, nil, searchIcon, clearSearchIcon, searchEntry)
+}
+
+func (p *PastyClipboard) Paginator() *fyne.Container {
+	p.pageSizeSelect = widget.NewSelect(pageSizeOptions, func(s string) {
+		size, _ := strconv.Atoi(s)
+		p.onPageSizeChange(size)
+	})
+	p.pageSizeSelect.SetSelected(strconv.Itoa(p.pageSize))
+
+	p.prevButton = widget.NewButton(prevBtnText, func() {
+		p.prevPage()
+	})
+	p.nextButton = widget.NewButton(nextBtnText, func() {
+		p.nextPage()
+	})
+	p.pageLabel = widget.NewLabel("")
+
+	return container.NewHBox(
+		p.prevButton,
+		p.pageLabel,
+		p.nextButton,
+	)
+}
+
+func (p *PastyClipboard) ClearAll() *widget.Button {
+	clearAllButton := widget.NewButtonWithIcon(clearAllBtnText, theme.DeleteIcon(), func() {
+		dialog.ShowConfirm(confirmDeleteTitle, confirmDeleteMsg, func(confirm bool) {
+			if confirm {
+				if err := database.DeleteAllClipboardItems(); err != nil {
+					log.Fatal("error deleting clipboard history:", err)
+					return
+				}
+				p.clipboardHistory = []models.ClipboardItem{}
+				p.updateHistoryUI("")
+			}
+		}, p.Win)
+
+	})
+	clearAllButton.Importance = widget.LowImportance
+
+	return clearAllButton
+}
+
+func (p *PastyClipboard) BottomBar() *fyne.Container {
+	bottomBar := container.NewHBox(
+		widget.NewLabel(showLabelText),
+		p.pageSizeSelect,
+		widget.NewSeparator(),
+		p.Paginator(),
+		widget.NewSeparator(),
+		p.ClearAll(),
+	)
+
+	return bottomBar
+}
+
 func (p *PastyClipboard) ShowAndRun() {
 	p.Win.ShowAndRun()
+}
+
+func (p *PastyClipboard) prevPage() {
+	if p.currentPage > 1 {
+		p.currentPage--
+		p.updateHistoryUI("") // Llama a la función de actualización para recargar la lista
+	}
+}
+
+func (p *PastyClipboard) nextPage() {
+	totalItems := len(p.clipboardHistory)
+	totalPages := int(math.Ceil(float64(totalItems) / float64(p.pageSize)))
+	if p.currentPage < totalPages {
+		p.currentPage++
+		p.updateHistoryUI("") // Llama a la función de actualización para recargar la lista
+	}
+}
+
+func (p *PastyClipboard) onPageSizeChange(size int) {
+	p.pageSize = size
+	p.currentPage = 1     // Resetear a la primera página es crucial
+	p.updateHistoryUI("") // Recargar la lista con el nuevo tamaño de página
 }
