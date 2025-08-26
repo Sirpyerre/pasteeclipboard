@@ -80,7 +80,7 @@ func NewPastyClipboard(a fyne.App) *PastyClipboard {
 }
 
 func (p *PastyClipboard) setupUI() {
-	searchBox := p.SearchBox()
+	searchBox := p.searchBox()
 
 	p.historyContainer = container.NewVBox()
 
@@ -91,7 +91,7 @@ func (p *PastyClipboard) setupUI() {
 	scrollableHistory := container.NewScroll(p.historyContainer)
 	scrollableHistory.SetMinSize(fyne.NewSize(300, 400))
 
-	bottomBar := p.BottomBar()
+	bottomBar := p.bottomBar()
 
 	content := container.NewBorder(
 		searchBox,         // Top
@@ -131,7 +131,7 @@ func (p *PastyClipboard) updateHistoryUI(query string) {
 	})
 }
 
-func (p *PastyClipboard) SearchBox() *fyne.Container {
+func (p *PastyClipboard) searchBox() *fyne.Container {
 	searchEntry := widget.NewEntry()
 	searchEntry.SetPlaceHolder(placeholderText)
 
@@ -149,7 +149,7 @@ func (p *PastyClipboard) SearchBox() *fyne.Container {
 	return container.NewBorder(nil, nil, searchIcon, clearSearchIcon, searchEntry)
 }
 
-func (p *PastyClipboard) Paginator() *fyne.Container {
+func (p *PastyClipboard) paginator() *fyne.Container {
 	p.pageSizeSelect = widget.NewSelect(pageSizeOptions, func(s string) {
 		size, _ := strconv.Atoi(s)
 		p.onPageSizeChange(size)
@@ -171,7 +171,7 @@ func (p *PastyClipboard) Paginator() *fyne.Container {
 	)
 }
 
-func (p *PastyClipboard) ClearAll() *widget.Button {
+func (p *PastyClipboard) clearAll() *widget.Button {
 	clearAllButton := widget.NewButtonWithIcon(clearAllBtnText, theme.DeleteIcon(), func() {
 		dialog.ShowConfirm(confirmDeleteTitle, confirmDeleteMsg, func(confirm bool) {
 			if confirm {
@@ -190,27 +190,23 @@ func (p *PastyClipboard) ClearAll() *widget.Button {
 	return clearAllButton
 }
 
-func (p *PastyClipboard) BottomBar() *fyne.Container {
+func (p *PastyClipboard) bottomBar() *fyne.Container {
 	bottomBar := container.NewHBox(
 		widget.NewLabel(showLabelText),
 		p.pageSizeSelect,
 		widget.NewSeparator(),
-		p.Paginator(),
+		p.paginator(),
 		widget.NewSeparator(),
-		p.ClearAll(),
+		p.clearAll(),
 	)
 
 	return bottomBar
 }
 
-func (p *PastyClipboard) ShowAndRun() {
-	p.Win.ShowAndRun()
-}
-
 func (p *PastyClipboard) prevPage() {
 	if p.currentPage > 1 {
 		p.currentPage--
-		p.updateHistoryUI("") // Llama a la función de actualización para recargar la lista
+		p.updateHistoryUI("")
 	}
 }
 
@@ -219,7 +215,7 @@ func (p *PastyClipboard) nextPage() {
 	totalPages := int(math.Ceil(float64(totalItems) / float64(p.pageSize)))
 	if p.currentPage < totalPages {
 		p.currentPage++
-		p.updateHistoryUI("") // Llama a la función de actualización para recargar la lista
+		p.updateHistoryUI("")
 	}
 }
 
