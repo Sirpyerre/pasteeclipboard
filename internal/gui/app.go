@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
@@ -28,7 +29,7 @@ const (
 )
 
 // Constant for pagination options
-var pageSizeOptions = []string{"10", "20", "50", "100"}
+var pageSizeOptions = []string{"2", "4", "6", "8"}
 
 type PastyClipboard struct {
 	App              fyne.App
@@ -83,11 +84,9 @@ func (p *PastyClipboard) setupUI() {
 	searchBox := p.searchBox()
 
 	p.historyContainer = container.NewVBox()
-
 	p.currentPage = 1
 	p.pageSize = 10
 
-	p.updateHistoryUI("")
 	scrollableHistory := container.NewScroll(p.historyContainer)
 	scrollableHistory.SetMinSize(fyne.NewSize(300, 400))
 
@@ -102,33 +101,76 @@ func (p *PastyClipboard) setupUI() {
 	)
 
 	p.Win.SetContent(content)
+	p.updateHistoryUI("")
 }
 
 func (p *PastyClipboard) updateHistoryUI(query string) {
-	fyne.Do(func() {
-		p.historyContainer.RemoveAll()
+	var filteredItems []models.ClipboardItem
+	for _, item := range p.clipboardHistory {
+		if query == "" || strings.Contains(strings.ToLower(item.Content), strings.ToLower(query)) {
+			filteredItems = append(filteredItems, item)
+		}
+	}
 
-		for _, item := range p.clipboardHistory {
-			if query == "" || strings.Contains(strings.ToLower(item.Content), strings.ToLower(query)) {
+	totalItems := len(filteredItems)
+	totalPages := int(math.Ceil(float64(totalItems) / float64(p.pageSize)))
 
-				p.historyContainer.Add(CreateHistoryItemUI(item, func(deletedItem models.ClipboardItem) {
-					_ = database.DeleteClipboardItem(item.ID)
+	if p.currentPage > totalPages {
+		p.currentPage = totalPages
+	}
+	if p.currentPage < 1 && totalPages > 0 {
+		p.currentPage = 1
+	} else if totalPages == 0 {
+		p.currentPage = 0
+	}
 
-					var newHistory []models.ClipboardItem
-					for _, hItem := range p.clipboardHistory {
-						if hItem.ID != deletedItem.ID {
-							newHistory = append(newHistory, hItem)
-						}
+	startIndex := (p.currentPage - 1) * p.pageSize
+	endIndex := int(math.Min(float64(startIndex+p.pageSize), float64(totalItems)))
+
+	p.historyContainer.RemoveAll()
+
+	if totalItems > 0 {
+		visibleItems := filteredItems[startIndex:endIndex]
+
+		for _, item := range visibleItems {
+			p.historyContainer.Add(CreateHistoryItemUI(item, func(deletedItem models.ClipboardItem) {
+				_ = database.DeleteClipboardItem(item.ID)
+				var newHistory []models.ClipboardItem
+				for _, hItem := range p.clipboardHistory {
+					if hItem.ID != deletedItem.ID {
+						newHistory = append(newHistory, hItem)
 					}
+				}
+				p.clipboardHistory = newHistory
+				p.updateHistoryUI(query)
+			}))
+		}
+	} else {
+		p.historyContainer.Add(widget.NewLabel(noHistoryText))
+	}
 
-					p.clipboardHistory = newHistory
-					p.updateHistoryUI(query)
-				}))
-			}
+	// update paginator
+	if totalPages == 0 {
+		p.pageLabel.SetText("Page 0 of 0")
+		p.prevButton.Disabled()
+		p.nextButton.Disabled()
+	} else {
+		p.pageLabel.SetText(fmt.Sprintf("Page %d of %d", p.currentPage, totalPages))
+
+		if p.currentPage <= 1 {
+			p.prevButton.Disabled()
+		} else {
+			p.prevButton.Enable()
 		}
 
-		p.historyContainer.Refresh()
-	})
+		if p.currentPage >= totalPages {
+			p.nextButton.Disabled()
+		} else {
+			p.nextButton.Enable()
+		}
+	}
+
+	p.historyContainer.Refresh()
 }
 
 func (p *PastyClipboard) searchBox() *fyne.Container {
@@ -150,11 +192,7 @@ func (p *PastyClipboard) searchBox() *fyne.Container {
 }
 
 func (p *PastyClipboard) paginator() *fyne.Container {
-	p.pageSizeSelect = widget.NewSelect(pageSizeOptions, func(s string) {
-		size, _ := strconv.Atoi(s)
-		p.onPageSizeChange(size)
-	})
-	p.pageSizeSelect.SetSelected(strconv.Itoa(p.pageSize))
+	p.pageLabel = widget.NewLabel("")
 
 	p.prevButton = widget.NewButton(prevBtnText, func() {
 		p.prevPage()
@@ -162,7 +200,13 @@ func (p *PastyClipboard) paginator() *fyne.Container {
 	p.nextButton = widget.NewButton(nextBtnText, func() {
 		p.nextPage()
 	})
-	p.pageLabel = widget.NewLabel("")
+
+	p.pageSizeSelect = widget.NewSelect(pageSizeOptions, func(s string) {
+		size, _ := strconv.Atoi(s)
+		p.onPageSizeChange(size)
+	})
+
+	p.pageSizeSelect.SetSelected(strconv.Itoa(p.pageSize))
 
 	return container.NewHBox(
 		p.prevButton,
