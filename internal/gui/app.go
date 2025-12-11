@@ -66,9 +66,16 @@ func NewPastyClipboard(a fyne.App) *PastyClipboard {
 	p.setupUI()
 
 	monitor.StartClipboardMonitor(func(newItem models.ClipboardItem) {
+		var notificationContent string
+		if newItem.Type == "image" {
+			notificationContent = "New image copied"
+		} else {
+			notificationContent = newItem.Content
+		}
+
 		fyne.CurrentApp().SendNotification(&fyne.Notification{
 			Title:   "New Clipboard Item",
-			Content: newItem.Content,
+			Content: notificationContent,
 		})
 
 		fyne.Do(func() {

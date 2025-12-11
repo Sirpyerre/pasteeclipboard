@@ -1,6 +1,12 @@
 package gui
 
 import (
+	"crypto/sha256"
+	"fmt"
+	"image/color"
+	"log"
+	"os"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
@@ -9,15 +15,29 @@ import (
 	"fyne.io/fyne/v2/widget"
 	"github.com/Sirpyerre/pasteeclipboard/internal/models"
 	"github.com/Sirpyerre/pasteeclipboard/internal/monitor"
-	"github.com/atotto/clipboard"
-	"image/color"
-	"log"
+	"golang.design/x/clipboard"
 )
 
 func CreateHistoryItemUI(item models.ClipboardItem, onDelete func(models.ClipboardItem)) fyne.CanvasObject {
-	contentLabel := widget.NewLabelWithStyle(item.Content, fyne.TextAlignLeading, fyne.TextStyle{Monospace: false})
-	contentLabel.Wrapping = fyne.TextTruncate
-	contentLabel.Resize(fyne.NewSize(300, 60))
+	var contentDisplay fyne.CanvasObject
+
+	if item.Type == "image" {
+		// Display image thumbnail
+		if item.PreviewPath != "" {
+			img := canvas.NewImageFromFile(item.PreviewPath)
+			img.FillMode = canvas.ImageFillContain
+			img.SetMinSize(fyne.NewSize(128, 128))
+			contentDisplay = img
+		} else {
+			contentDisplay = widget.NewLabel("[Image]")
+		}
+	} else {
+		// Display text content
+		contentLabel := widget.NewLabelWithStyle(item.Content, fyne.TextAlignLeading, fyne.TextStyle{Monospace: false})
+		contentLabel.Wrapping = fyne.TextTruncate
+		contentLabel.Resize(fyne.NewSize(300, 60))
+		contentDisplay = contentLabel
+	}
 
 	var typeIcon fyne.CanvasObject
 	switch item.Type {
@@ -40,17 +60,24 @@ func CreateHistoryItemUI(item models.ClipboardItem, onDelete func(models.Clipboa
 
 	itemContent := container.New(layout.NewBorderLayout(nil, nil, typeIcon, deleteButton),
 		typeIcon,
-		contentLabel,
+		contentDisplay,
 		deleteButton,
 	)
 
 	background := canvas.NewRectangle(theme.BackgroundColor())
 
 	card := widget.NewButton("", func() {
-		err := clipboard.WriteAll(item.Content)
-		if err != nil {
-			log.Printf("error copying to clipboard: %s\n", err)
+		if item.Type == "image" {
+			// Copy image to clipboard
+			if err := copyImageToClipboard(item); err != nil {
+				log.Printf("error copying image to clipboard: %s\n", err)
+			} else {
+				monitor.IgnoreNextClipboardRead()
+				log.Println("Image copied to clipboard")
+			}
 		} else {
+			// Copy text to clipboard
+			clipboard.Write(clipboard.FmtText, []byte(item.Content))
 			monitor.IgnoreNextClipboardRead()
 			monitor.SetLastClipboardContent(item.Content)
 			log.Printf("Contenido copiado: %s\n", item.Content)
@@ -68,4 +95,27 @@ func CreateHistoryItemUI(item models.ClipboardItem, onDelete func(models.Clipboa
 		),
 		canvas.NewLine(color.Gray{Y: 0xCC}), // separator
 	)
+}
+
+// copyImageToClipboard copies an image to the clipboard
+func copyImageToClipboard(item models.ClipboardItem) error {
+	if item.ImagePath == "" {
+		return fmt.Errorf("no image path")
+	}
+
+	// Read the image file
+	imageData, err := os.ReadFile(item.ImagePath)
+	if err != nil {
+		return fmt.Errorf("failed to read image file: %w", err)
+	}
+
+	// Calculate and set the hash to prevent re-detection
+	hash := sha256.Sum256(imageData)
+	hashStr := fmt.Sprintf("%x", hash[:8])
+	monitor.SetLastImageHash(hashStr)
+
+	// Write to clipboard
+	clipboard.Write(clipboard.FmtImage, imageData)
+
+	return nil
 }
