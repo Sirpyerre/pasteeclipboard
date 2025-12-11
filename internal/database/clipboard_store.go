@@ -1,9 +1,9 @@
 package database
 
 import (
-	"github.com/Sirpyerre/pasteeclipboard/internal/models"
-	"log"
 	"time"
+
+	"github.com/Sirpyerre/pasteeclipboard/internal/models"
 )
 
 type ClipboardItemDB struct {
@@ -30,7 +30,6 @@ func InsertClipboardItem(content, itemType string) (int64, error) {
 
 func GetClipboardHistory(limit int) ([]models.ClipboardItem, error) {
 	stmt := `SELECT id, content, type FROM clipboard_history ORDER BY created_at DESC LIMIT ?`
-	log.Printf("Executing query: %s with limit %d", stmt, limit)
 	rows, err := db.Query(stmt, limit)
 	if err != nil {
 		return nil, err
