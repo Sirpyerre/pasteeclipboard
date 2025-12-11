@@ -6,6 +6,7 @@ import (
 	"image/color"
 	"log"
 	"os"
+	"strings"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
@@ -32,10 +33,10 @@ func CreateHistoryItemUI(item models.ClipboardItem, onDelete func(models.Clipboa
 			contentDisplay = widget.NewLabel("[Image]")
 		}
 	} else {
-		// Display text content
-		contentLabel := widget.NewLabelWithStyle(item.Content, fyne.TextAlignLeading, fyne.TextStyle{Monospace: false})
-		contentLabel.Wrapping = fyne.TextTruncate
-		contentLabel.Resize(fyne.NewSize(300, 60))
+		// Display text content (truncated to first 3 lines)
+		displayText := truncateToLines(item.Content, 3, 80)
+		contentLabel := widget.NewLabelWithStyle(displayText, fyne.TextAlignLeading, fyne.TextStyle{Monospace: false})
+		contentLabel.Wrapping = fyne.TextWrapWord
 		contentDisplay = contentLabel
 	}
 
@@ -118,4 +119,60 @@ func copyImageToClipboard(item models.ClipboardItem) error {
 	clipboard.Write(clipboard.FmtImage, imageData)
 
 	return nil
+}
+
+// truncateToLines truncates text to the first N lines with ellipsis
+// maxCharsPerLine is used to estimate line wrapping for long unwrapped text
+func truncateToLines(text string, maxLines int, maxCharsPerLine int) string {
+	// Split by newlines first
+	lines := strings.Split(text, "\n")
+
+	var result []string
+	lineCount := 0
+	truncated := false
+
+	for i, line := range lines {
+		if lineCount >= maxLines {
+			truncated = true
+			break
+		}
+
+		// Estimate how many display lines this line will take
+		// considering word wrapping at maxCharsPerLine
+		if len(line) > maxCharsPerLine {
+			// This line will wrap - count estimated wrapped lines
+			estimatedLines := (len(line) + maxCharsPerLine - 1) / maxCharsPerLine
+			if lineCount+estimatedLines > maxLines {
+				// This line would exceed our limit
+				// Take what we can fit
+				remainingLines := maxLines - lineCount
+				charsToTake := remainingLines * maxCharsPerLine
+				if charsToTake < len(line) {
+					result = append(result, line[:charsToTake])
+					truncated = true
+					break
+				}
+			}
+			lineCount += estimatedLines
+		} else {
+			lineCount++
+		}
+
+		result = append(result, line)
+
+		// Check if there are more lines after this
+		if i < len(lines)-1 && lineCount >= maxLines {
+			truncated = true
+			break
+		}
+	}
+
+	joined := strings.Join(result, "\n")
+
+	// Add ellipsis if we truncated
+	if truncated || len(lines) > len(result) {
+		joined = strings.TrimRight(joined, " \n") + "..."
+	}
+
+	return joined
 }
