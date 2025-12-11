@@ -27,13 +27,9 @@ func SaveImage(imageData []byte, format string) (string, string, error) {
 		return "", "", fmt.Errorf("failed to decode image: %w", err)
 	}
 
-	// Get or create the images directory
-	exePath, err := os.Executable()
-	if err != nil {
-		return "", "", err
-	}
-	exeDir := filepath.Dir(exePath)
-	imagesDir := filepath.Join(exeDir, "data", "images")
+	// Get or create the images directory (relative to working directory)
+	// This matches how the database path is handled for consistency
+	imagesDir := filepath.Join("data", "images")
 
 	// Create images directory if it doesn't exist
 	if err := os.MkdirAll(imagesDir, os.ModePerm); err != nil {
