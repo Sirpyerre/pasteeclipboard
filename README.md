@@ -7,7 +7,7 @@
   <strong>Version:</strong> v0.1.0
 </p>
 
-**Pastee Clipboard** is a lightweight clipboard manager that lives in your system tray, allowing you to monitor and reuse your clipboard history with ease. Designed with productivity in mind, Pastee is optimized for **macOS Sequoia (15.6)** and integrates seamlessly with system-level shortcuts.
+**Pastee Clipboard** is a lightweight, cross-platform clipboard manager that lives in your system tray, allowing you to monitor and reuse your clipboard history with ease. Designed with productivity in mind, Pastee works on **macOS, Windows, and Linux** and integrates seamlessly with system-level shortcuts.
 
 ---
 
@@ -36,16 +36,40 @@
 
 ## 🚀 Requirements
 
-- **macOS Sequoia (15.6)** (might work on earlier versions, untested)
+### All Platforms
 - **Go 1.24 or higher**
-- **[Fyne toolkit](https://developer.fyne.io/started/)** (GUI library)
+- **[Fyne toolkit](https://developer.fyne.io/started/)** (cross-platform GUI library)
 - **SQLite3** (used internally via Go's built-in support)
+- **CGO enabled** (required for SQLite and some platform-specific features)
+
+### Platform-Specific Requirements
+
+**macOS**
+- macOS 10.14+ (tested on Sequoia 15.6)
+- Accessibility permissions for global hotkey support
+
+**Windows**
+- Windows 7 or higher
+
+**Linux**
+- X11 display server
+- `xclip` or `xsel` command-line utility (required for clipboard operations)
+  ```bash
+  # Debian/Ubuntu
+  sudo apt-get install xclip
+
+  # Fedora
+  sudo dnf install xclip
+
+  # Arch
+  sudo pacman -S xclip
+  ```
 
 To install the required Go dependencies:
 
 ```bash
 go install fyne.io/fyne/v2/cmd/fyne@latest
-````
+```
 
 ---
 
@@ -79,10 +103,15 @@ make run
 Or manually:
 
 ```bash
-./bin/pastee
+./bin/pastee         # Run the built binary
+go run ./cmd/pastee  # Run from source
 ```
 
-> On macOS, you might need to grant accessibility permissions to allow Pastee to monitor keyboard events and clipboard changes.
+> **Important**: When using `go run`, always use the package path `./cmd/pastee`, NOT a single file like `cmd/pastee/main.go`. This ensures platform-specific files are included.
+
+> **macOS**: Grant accessibility permissions to monitor keyboard events
+> **Linux**: Ensure `xclip` or `xsel` is installed for clipboard access
+> **Windows**: You may need to run as administrator for global hotkey registration
 
 ---
 
@@ -126,16 +155,26 @@ pasteeclipboard/
 
 ## 🐛 Troubleshooting
 
-* Make sure **macOS accessibility permissions** are granted to your terminal or compiled binary.
-* If global shortcut is not working:
+### macOS
+* Make sure **accessibility permissions** are granted to your terminal or compiled binary
+* Grant permissions in System Preferences > Security & Privacy > Privacy > Accessibility
 
-    * Try running the app from a terminal.
-    * Restart the app or check for background restrictions.
-* Build errors?
+### Windows
+* If the global shortcut isn't working, make sure no other application is using Ctrl+Alt+P
+* Run as administrator if you encounter permission issues
 
-    * Ensure you're using Go 1.24+
-    * Check that `$GOPATH/bin` is in your `PATH`
-    * Run `go mod tidy` to fetch missing dependencies
+### Linux
+* **Clipboard not working?** Install `xclip` or `xsel`:
+  ```bash
+  sudo apt-get install xclip  # Debian/Ubuntu
+  ```
+* **Global shortcut not working?** Some desktop environments may override Ctrl+Alt+P
+* Try running from a terminal to see debug output
+
+### All Platforms
+* Build errors? Ensure you're using Go 1.24+ and CGO is enabled
+* Check that `$GOPATH/bin` is in your `PATH`
+* Run `go mod tidy` to fetch missing dependencies
 
 ---
 
@@ -144,7 +183,8 @@ pasteeclipboard/
 Run the app directly during development:
 
 ```bash
-make run
+make run             # Recommended
+go run ./cmd/pastee  # Alternative (use package path, not single file)
 ```
 
 To rebuild after changes:

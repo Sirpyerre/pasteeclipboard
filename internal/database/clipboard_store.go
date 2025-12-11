@@ -59,3 +59,14 @@ func DeleteAllClipboardItems() error {
 	_, err := db.Exec("DELETE FROM clipboard_history")
 	return err
 }
+
+// CheckDuplicateContent checks if the exact content already exists in the database
+func CheckDuplicateContent(content string) (bool, error) {
+	stmt := `SELECT COUNT(*) FROM clipboard_history WHERE content = ?`
+	var count int
+	err := db.QueryRow(stmt, content).Scan(&count)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}

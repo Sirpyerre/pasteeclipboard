@@ -25,15 +25,27 @@ func StartClipboardMonitor(onNewItem func(models.ClipboardItem)) {
 
 			if content != "" && content != lastContent {
 				lastContent = content
-				id, err := database.InsertClipboardItem(content, "text") // Suponemos solo texto por ahora
+
+				// Check if this content already exists in the database
+				isDuplicate, err := database.CheckDuplicateContent(content)
 				if err != nil {
-					log.Println("error inserting clipboard item:", err)
+					log.Println("error checking for duplicate:", err)
 				}
 
-				items, err := database.GetClipboardHistory(1)
-				if err == nil && len(items) > 0 {
-					items[0].ID = int(id)
-					onNewItem(items[0])
+				// Only insert if it's not a duplicate
+				if !isDuplicate {
+					id, err := database.InsertClipboardItem(content, "text")
+					if err != nil {
+						log.Println("error inserting clipboard item:", err)
+					} else {
+						items, err := database.GetClipboardHistory(1)
+						if err == nil && len(items) > 0 {
+							items[0].ID = int(id)
+							onNewItem(items[0])
+						}
+					}
+				} else {
+					log.Printf("Skipping duplicate content: %s...\n", truncateString(content, 50))
 				}
 			}
 
