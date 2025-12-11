@@ -79,7 +79,15 @@ func NewPastyClipboard(a fyne.App) *PastyClipboard {
 		})
 
 		fyne.Do(func() {
-			p.clipboardHistory = append([]models.ClipboardItem{newItem}, p.clipboardHistory...)
+			// Remove the item if it already exists (duplicate handling)
+			var newHistory []models.ClipboardItem
+			for _, item := range p.clipboardHistory {
+				if item.ID != newItem.ID {
+					newHistory = append(newHistory, item)
+				}
+			}
+			// Prepend the item to the top
+			p.clipboardHistory = append([]models.ClipboardItem{newItem}, newHistory...)
 			p.updateHistoryUI("")
 		})
 	})

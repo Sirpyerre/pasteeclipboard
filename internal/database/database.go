@@ -47,6 +47,7 @@ func createSchema() error {
 		type TEXT NOT NULL,
 		image_path TEXT,
 		preview_path TEXT,
+		image_hash TEXT,
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 	);`
 	if _, err := db.Exec(schema); err != nil {
@@ -62,7 +63,7 @@ func createSchema() error {
 }
 
 func migrateSchema() error {
-	// Check if image_path column exists
+	// Check if columns exist
 	rows, err := db.Query("PRAGMA table_info(clipboard_history)")
 	if err != nil {
 		return err
@@ -71,6 +72,7 @@ func migrateSchema() error {
 
 	hasImagePath := false
 	hasPreviewPath := false
+	hasImageHash := false
 	for rows.Next() {
 		var cid int
 		var name string
@@ -86,6 +88,9 @@ func migrateSchema() error {
 		}
 		if name == "preview_path" {
 			hasPreviewPath = true
+		}
+		if name == "image_hash" {
+			hasImageHash = true
 		}
 	}
 
@@ -103,6 +108,14 @@ func migrateSchema() error {
 			return err
 		}
 		log.Println("Added preview_path column to clipboard_history table")
+	}
+
+	// Add image_hash column if it doesn't exist
+	if !hasImageHash {
+		if _, err := db.Exec("ALTER TABLE clipboard_history ADD COLUMN image_hash TEXT"); err != nil {
+			return err
+		}
+		log.Println("Added image_hash column to clipboard_history table")
 	}
 
 	// Make content column nullable if needed (can't alter column type in SQLite easily)

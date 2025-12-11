@@ -29,16 +29,16 @@ func InsertClipboardItem(content, itemType string) (int64, error) {
 	return res.LastInsertId()
 }
 
-// InsertImageItem inserts an image clipboard item with paths
-func InsertImageItem(imagePath, previewPath, itemType string) (int64, error) {
-	stmt, err := db.Prepare(`INSERT INTO clipboard_history (content, type, image_path, preview_path) VALUES (?, ?, ?, ?)`)
+// InsertImageItem inserts an image clipboard item with paths and hash
+func InsertImageItem(imagePath, previewPath, imageHash, itemType string) (int64, error) {
+	stmt, err := db.Prepare(`INSERT INTO clipboard_history (content, type, image_path, preview_path, image_hash) VALUES (?, ?, ?, ?, ?)`)
 	if err != nil {
 		return 0, err
 	}
 	defer stmt.Close()
 
 	// For images, we store empty string as content
-	res, err := stmt.Exec("", itemType, imagePath, previewPath)
+	res, err := stmt.Exec("", itemType, imagePath, previewPath, imageHash)
 	if err != nil {
 		return 0, err
 	}
@@ -141,4 +141,55 @@ func CheckDuplicateContent(content string) (bool, error) {
 		return false, err
 	}
 	return count > 0, nil
+}
+
+// GetItemByContent retrieves an existing item by its content
+func GetItemByContent(content string) (*models.ClipboardItem, error) {
+	stmt := `SELECT id, content, type, COALESCE(image_path, ''), COALESCE(preview_path, '') FROM clipboard_history WHERE content = ? LIMIT 1`
+	var item models.ClipboardItem
+	err := db.QueryRow(stmt, content).Scan(&item.ID, &item.Content, &item.Type, &item.ImagePath, &item.PreviewPath)
+	if err != nil {
+		return nil, err
+	}
+	return &item, nil
+}
+
+// GetItemByImagePath retrieves an existing item by its image path
+func GetItemByImagePath(imagePath string) (*models.ClipboardItem, error) {
+	stmt := `SELECT id, content, type, COALESCE(image_path, ''), COALESCE(preview_path, '') FROM clipboard_history WHERE image_path = ? LIMIT 1`
+	var item models.ClipboardItem
+	err := db.QueryRow(stmt, imagePath).Scan(&item.ID, &item.Content, &item.Type, &item.ImagePath, &item.PreviewPath)
+	if err != nil {
+		return nil, err
+	}
+	return &item, nil
+}
+
+// UpdateItemTimestamp updates the created_at timestamp to move item to the top
+func UpdateItemTimestamp(id int) error {
+	stmt := `UPDATE clipboard_history SET created_at = CURRENT_TIMESTAMP WHERE id = ?`
+	_, err := db.Exec(stmt, id)
+	return err
+}
+
+// CheckDuplicateImageHash checks if an image with this hash already exists
+func CheckDuplicateImageHash(imageHash string) (bool, error) {
+	stmt := `SELECT COUNT(*) FROM clipboard_history WHERE image_hash = ?`
+	var count int
+	err := db.QueryRow(stmt, imageHash).Scan(&count)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+// GetItemByImageHash retrieves an existing item by its image hash
+func GetItemByImageHash(imageHash string) (*models.ClipboardItem, error) {
+	stmt := `SELECT id, content, type, COALESCE(image_path, ''), COALESCE(preview_path, '') FROM clipboard_history WHERE image_hash = ? LIMIT 1`
+	var item models.ClipboardItem
+	err := db.QueryRow(stmt, imageHash).Scan(&item.ID, &item.Content, &item.Type, &item.ImagePath, &item.PreviewPath)
+	if err != nil {
+		return nil, err
+	}
+	return &item, nil
 }

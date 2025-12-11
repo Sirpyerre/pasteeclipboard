@@ -60,8 +60,25 @@ func handleTextClipboard(content string, onNewItem func(models.ClipboardItem)) {
 		log.Println("error checking for duplicate:", err)
 	}
 
-	// Only insert if it's not a duplicate
-	if !isDuplicate {
+	if isDuplicate {
+		// Get the existing item and move it to the top
+		existingItem, err := database.GetItemByContent(content)
+		if err != nil {
+			log.Println("error getting existing item:", err)
+			return
+		}
+
+		// Update timestamp to move to top of history
+		err = database.UpdateItemTimestamp(existingItem.ID)
+		if err != nil {
+			log.Println("error updating item timestamp:", err)
+			return
+		}
+
+		log.Printf("Moving duplicate to top: %s...\n", truncateString(content, 50))
+		onNewItem(*existingItem)
+	} else {
+		// Insert new item
 		id, err := database.InsertClipboardItem(content, "text")
 		if err != nil {
 			log.Println("error inserting clipboard item:", err)
@@ -72,8 +89,6 @@ func handleTextClipboard(content string, onNewItem func(models.ClipboardItem)) {
 				onNewItem(items[0])
 			}
 		}
-	} else {
-		log.Printf("Skipping duplicate content: %s...\n", truncateString(content, 50))
 	}
 }
 
@@ -83,11 +98,37 @@ func handleImageClipboard(imageData []byte, onNewItem func(models.ClipboardItem)
 	hashStr := fmt.Sprintf("%x", hash[:8])
 
 	if hashStr == lastImageHash {
-		return // Same image, skip
+		return // Same image as last read in this session, skip
 	}
 	lastImageHash = hashStr
 
-	// Detect image format
+	// Check if this image already exists in the database
+	isDuplicate, err := database.CheckDuplicateImageHash(hashStr)
+	if err != nil {
+		log.Println("error checking for duplicate image:", err)
+	}
+
+	if isDuplicate {
+		// Get the existing item and move it to the top
+		existingItem, err := database.GetItemByImageHash(hashStr)
+		if err != nil {
+			log.Println("error getting existing image item:", err)
+			return
+		}
+
+		// Update timestamp to move to top of history
+		err = database.UpdateItemTimestamp(existingItem.ID)
+		if err != nil {
+			log.Println("error updating image item timestamp:", err)
+			return
+		}
+
+		log.Printf("Moving duplicate image to top (hash: %s)\n", hashStr)
+		onNewItem(*existingItem)
+		return
+	}
+
+	// New image - detect format and save
 	format := detectImageFormat(imageData)
 	if format == "" {
 		log.Println("Unknown image format")
@@ -105,8 +146,8 @@ func handleImageClipboard(imageData []byte, onNewItem func(models.ClipboardItem)
 
 	log.Printf("Saved image: %s, thumbnail: %s\n", fullPath, thumbPath)
 
-	// Insert into database
-	id, err := database.InsertImageItem(fullPath, thumbPath, "image")
+	// Insert into database with hash
+	id, err := database.InsertImageItem(fullPath, thumbPath, hashStr, "image")
 	if err != nil {
 		log.Println("error inserting image item:", err)
 		// Clean up saved files if database insert fails
