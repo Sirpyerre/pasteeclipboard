@@ -22,10 +22,10 @@ func CreateHistoryItemUI(item models.ClipboardItem, onDelete func(models.Clipboa
 	var contentDisplay fyne.CanvasObject
 
 	if item.Type == "image" {
-		// Display image thumbnail
+		// Display image thumbnail (center-cropped to 128x128)
 		if item.PreviewPath != "" {
 			img := canvas.NewImageFromFile(item.PreviewPath)
-			img.FillMode = canvas.ImageFillContain
+			img.FillMode = canvas.ImageFillOriginal
 			img.SetMinSize(fyne.NewSize(128, 128))
 			contentDisplay = img
 		} else {

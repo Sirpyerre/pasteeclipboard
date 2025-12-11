@@ -104,25 +104,42 @@ func saveImageFile(path string, img image.Image, format string) error {
 	}
 }
 
-// createThumbnail creates a thumbnail of the specified size
+// createThumbnail creates a thumbnail of the specified size using center cropping
+// This ensures the thumbnail is exactly size x size without distortion
 func createThumbnail(img image.Image, size int) image.Image {
 	bounds := img.Bounds()
 	width := bounds.Dx()
 	height := bounds.Dy()
 
-	// Calculate aspect ratio
-	var newWidth, newHeight int
-	if width > height {
-		newWidth = size
-		newHeight = (height * size) / width
-	} else {
-		newHeight = size
-		newWidth = (width * size) / height
+	// Calculate the scale factor to fill the thumbnail size
+	// We scale so the smaller dimension fits the target size
+	scaleX := float64(size) / float64(width)
+	scaleY := float64(size) / float64(height)
+
+	// Use the larger scale to ensure the image fills the entire thumbnail
+	scale := scaleX
+	if scaleY > scaleX {
+		scale = scaleY
 	}
 
-	// Create thumbnail
-	thumbnail := image.NewRGBA(image.Rect(0, 0, newWidth, newHeight))
-	draw.CatmullRom.Scale(thumbnail, thumbnail.Bounds(), img, bounds, draw.Over, nil)
+	// Calculate scaled dimensions
+	scaledWidth := int(float64(width) * scale)
+	scaledHeight := int(float64(height) * scale)
+
+	// Create scaled image
+	scaled := image.NewRGBA(image.Rect(0, 0, scaledWidth, scaledHeight))
+	draw.CatmullRom.Scale(scaled, scaled.Bounds(), img, bounds, draw.Over, nil)
+
+	// Calculate crop offsets to center the image
+	cropX := (scaledWidth - size) / 2
+	cropY := (scaledHeight - size) / 2
+
+	// Create the final thumbnail with exact size
+	thumbnail := image.NewRGBA(image.Rect(0, 0, size, size))
+
+	// Copy the center portion of the scaled image
+	cropRect := image.Rect(cropX, cropY, cropX+size, cropY+size)
+	draw.Draw(thumbnail, thumbnail.Bounds(), scaled, cropRect.Min, draw.Src)
 
 	return thumbnail
 }
