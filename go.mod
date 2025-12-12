@@ -4,7 +4,6 @@ go 1.24.3
 
 require (
 	fyne.io/fyne/v2 v2.6.1
-	github.com/atotto/clipboard v0.1.4
 	github.com/mattn/go-sqlite3 v1.14.29
 	golang.design/x/clipboard v0.7.1
 	golang.design/x/hotkey v0.4.1
