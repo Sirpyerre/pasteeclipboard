@@ -1,0 +1,9 @@
+[Details]
+  Icon = "cmd/pastee/assets/pastee.png"
+  Name = "Pastee Clipboard"
+  ID = "com.sirpyerre.pastee"
+  Version = "1.0.0"
+  Build = 1
+
+[Darwin]
+  LSUIElement = true

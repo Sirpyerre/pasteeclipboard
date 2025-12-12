@@ -176,3 +176,4 @@ The project uses Go build tags for platform-specific code:
 - `//go:build linux` - Linux-specific code
 
 When adding platform-specific features, follow this pattern and create separate files for each platform.
+- use comments sparingly. Only comment complex code

@@ -35,8 +35,8 @@ if [ ! -f "$PLIST_PATH" ]; then
 fi
 
 echo "⚙️ Setting LSUIElement=true to hide Dock icon..."
-/usr/libexec/PlistBuddy -c "Add :LSUIElement string 1" "$PLIST_PATH" || \
-echo "⚠️ LSUIElement already set"
+/usr/libexec/PlistBuddy -c "Add :LSUIElement bool true" "$PLIST_PATH" 2>/dev/null || \
+/usr/libexec/PlistBuddy -c "Set :LSUIElement true" "$PLIST_PATH"
 
 echo "✅ Packaging complete!"
 echo "App bundle located at: $SCRIPT_DIR/$APP_NAME.app"
