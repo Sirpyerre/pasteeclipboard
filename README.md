@@ -4,7 +4,7 @@
   <img src="https://res.cloudinary.com/dtbpucouh/image/upload/v1754584625/pasteeclipboard/passtee_logo_wcinyp.png" alt="passtee clipboard" width="300">
 </div>
 <p align="center">
-  <strong>Version:</strong> v0.1.0
+  <strong>Version:</strong> v0.1.1
 </p>
 
 **Pastee Clipboard** is a lightweight, cross-platform clipboard manager that lives in your system tray, allowing you to monitor and reuse your clipboard history with ease. Designed with productivity in mind, Pastee works on **macOS, Windows, and Linux** and integrates seamlessly with system-level shortcuts.
@@ -13,13 +13,14 @@
 
 ## ✨ Features
 
-- System tray integration with context menu
-<img src="https://res.cloudinary.com/dtbpucouh/image/upload/v1754591393/pasteeclipboard/system-tray_rumip6.png">
+- **System tray integration** with context menu (macOS: menu bar only, no Dock icon)
+  <img src="https://res.cloudinary.com/dtbpucouh/image/upload/v1754591393/pasteeclipboard/system-tray_rumip6.png">
 
-<img src="https://res.cloudinary.com/dtbpucouh/image/upload/v1754591347/pasteeclipboard/menu-system-tray_pbkdiz.png">
+  <img src="https://res.cloudinary.com/dtbpucouh/image/upload/v1754591347/pasteeclipboard/menu-system-tray_pbkdiz.png">
 
-- Global shortcut (`Ctrl+Alt+P`) to show/hide the clipboard history window
-<img src="https://res.cloudinary.com/dtbpucouh/image/upload/v1754591347/pasteeclipboard/main-window_d9pxlx.png">
+- **Global shortcut** (`Ctrl+Alt+P` / `Ctrl+Option+P` on macOS) to show/hide the clipboard history window
+
+  <img src="https://res.cloudinary.com/dtbpucouh/image/upload/v1754591347/pasteeclipboard/main-window_d9pxlx.png">
 
 - Persistent clipboard history using SQLite
 - Simple and intuitive UI built with [Fyne](https://fyne.io)
@@ -32,7 +33,6 @@
 
 <img src="https://res.cloudinary.com/dtbpucouh/image/upload/v1754591346/pasteeclipboard/clear-all-pastee-history_lppoe6.png">
 
----
 
 ## 🚀 Requirements
 
@@ -115,10 +115,64 @@ go run ./cmd/pastee  # Run from source
 
 ---
 
+## 🍎 macOS App Bundle
+
+For a native macOS experience, you can build a `.app` bundle that runs as a **UI Agent** (system tray only, no Dock icon):
+
+### Building the App Bundle
+
+```bash
+./package-mac.sh
+```
+
+This creates `pastee.app` with the following features:
+- ✅ Runs as a UI Agent (appears only in the menu bar)
+- ✅ Does not appear in the Dock
+- ✅ Proper macOS integration with LSUIElement and NSApplicationActivationPolicyAccessory
+- ✅ Includes app icon and metadata
+
+### Running the App Bundle
+
+```bash
+open pastee.app
+```
+
+Or double-click `pastee.app` in Finder.
+
+**Note**: The app will appear only in the menu bar (top-right, near the clock). Look for the Pastee icon to access the menu.
+
+### Installing to Applications Folder
+
+```bash
+cp -R pastee.app /Applications/
+open /Applications/pastee.app
+```
+
+### Uninstalling
+
+To completely remove Pastee from macOS:
+
+```bash
+# 1. Quit the application (from menu bar icon → Quit)
+# 2. Remove the app bundle
+rm -rf /Applications/pastee.app
+# or if installed elsewhere:
+rm -rf ~/path/to/pastee.app
+
+# 3. Remove clipboard data (optional)
+rm -rf data/clipboard.db
+rm -rf data/images/
+
+# 4. Reset LaunchServices cache (optional, clears macOS cache)
+/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -kill -r -domain local -domain system -domain user
+```
+
+---
+
 ## 🧠 Usage
 
-* Press **Ctrl + Alt + P** to show/hide the clipboard window
-* Click the tray icon to toggle the window or quit the app
+* Press **Ctrl + Alt + P** (or **Ctrl + Option + P** on macOS) to show/hide the clipboard window
+* Click the **menu bar icon** (macOS) or **system tray icon** (Windows/Linux) to toggle the window or quit the app
 * Use the **filter input** to search your clipboard history
 * Use the **clear all** button to delete the history (with confirmation)
 * Click the **trash icon** on an item to delete it from the list and DB
@@ -139,14 +193,21 @@ We're working on adding support for:
 ```
 pasteeclipboard/
 ├── cmd/
-│   └── pastee/          # Main application entry point (main.go)
-│           └── assets/  # Icons, logos, etc.
+│   └── pastee/
+│       ├── main.go                      # Application entry point
+│       ├── hotkey_darwin.go             # macOS hotkey configuration
+│       ├── hotkey_windows.go            # Windows hotkey configuration
+│       ├── hotkey_linux.go              # Linux hotkey configuration
+│       ├── activation_policy_darwin.go  # macOS UI Agent configuration
+│       └── assets/                      # Icons and embedded resources
 ├── internal/
 │   ├── gui/             # UI and window logic
 │   ├── database/        # SQLite integration
 │   ├── monitor/         # Clipboard listener and hook management
 │   └── models/          # Data structures
 ├── data/                # Clipboard history storage (sqlite.db)
+├── FyneApp.toml         # Fyne app metadata configuration
+├── package-mac.sh       # macOS app bundle build script
 ├── Makefile             # Build and run instructions
 └── README.md            # This file
 ```
@@ -158,6 +219,9 @@ pasteeclipboard/
 ### macOS
 * Make sure **accessibility permissions** are granted to your terminal or compiled binary
 * Grant permissions in System Preferences > Security & Privacy > Privacy > Accessibility
+* **App not visible after launching?** The app runs as a UI Agent and appears only in the menu bar (top-right). Look for the Pastee icon near the clock.
+* **Still seeing Dock icon?** Rebuild the app with `./package-mac.sh` to ensure LSUIElement is properly set
+* **Global hotkey**: On macOS, the shortcut is **Ctrl + Option + P** (Option is the Alt key)
 
 ### Windows
 * If the global shortcut isn't working, make sure no other application is using Ctrl+Alt+P
@@ -194,15 +258,24 @@ make clean && make
 ```
 
 ## Versioning
-Current version v0.1.0
+Current version v0.1.1
 
 # Changelog
+
+**v0.1.1 - macOS UI Agent Enhancement**
+- 🍎 macOS now runs as a UI Agent (menu bar only, no Dock icon)
+- 🔧 Added `activation_policy_darwin.go` for proper macOS integration
+- 📦 Added `package-mac.sh` script for building macOS app bundles
+- ⚙️ Added `FyneApp.toml` for app metadata configuration
+- 🎯 Platform-specific hotkey modifiers (Ctrl+Option+P on macOS)
+- 📝 Updated documentation with macOS-specific instructions
+
 **v0.1.0 - Initial Release**
 - 🎉 Basic UI with Fyne
 - 📋 Clipboard monitoring and persistent history
 - 🔍 Filtering support
 - 🧹 Delete single or all entries
-- 🖱️ System tray integration (macOS)
+- 🖱️ System tray integration (cross-platform)
 - ⌨️ Global keyboard shortcut (Ctrl+Alt+P) to show/hide window
 
 ---

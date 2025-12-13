@@ -7,3 +7,5 @@ build/
 *.app/
 .DS_Store
 **/.DS_Store
+.claude/
+*.log
