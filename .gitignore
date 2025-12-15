@@ -7,3 +7,15 @@ build/
 *.app/
 .DS_Store
 **/.DS_Store
+.claude/
+*.log
+
+# Windows
+*.exe
+Thumbs.db
+Desktop.ini
+
+# Linux
+*.AppImage
+*.deb
+*.rpm

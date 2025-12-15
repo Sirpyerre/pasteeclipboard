@@ -34,18 +34,17 @@ if [ ! -f "$PLIST_PATH" ]; then
     exit 1
 fi
 
-echo "⚙️ Updating Info.plist..."
+echo "⚙️ Setting LSUIElement=true to hide Dock icon..."
 /usr/libexec/PlistBuddy -c "Delete :LSUIElement" "$PLIST_PATH" 2>/dev/null || true
-/usr/libexec/PlistBuddy -c "Add :LSUIElement bool false" "$PLIST_PATH"
+/usr/libexec/PlistBuddy -c "Add :LSUIElement bool true" "$PLIST_PATH"
 
-/usr/libexec/PlistBuddy -c "Delete :NSUserNotificationUsageDescription" "$PLIST_PATH" 2>/dev/null || true
-/usr/libexec/PlistBuddy -c "Add :NSUserNotificationUsageDescription string 'This app needs to send you notifications.'" "$PLIST_PATH"
+echo "⚙️ Setting NSUIElement=1 (legacy compatibility)..."
+/usr/libexec/PlistBuddy -c "Delete :NSUIElement" "$PLIST_PATH" 2>/dev/null || true
+/usr/libexec/PlistBuddy -c "Add :NSUIElement integer 1" "$PLIST_PATH"
 
-echo "🧹 Removing quarantine attributes..."
-xattr -cr "$SCRIPT_DIR/$APP_NAME.app"
-
-echo "🔏 Signing the application (ad-hoc)..."
-codesign --force --deep --sign - "$SCRIPT_DIR/$APP_NAME.app"
+echo "⚙️ Verifying Info.plist settings..."
+/usr/libexec/PlistBuddy -c "Print :LSUIElement" "$PLIST_PATH"
+/usr/libexec/PlistBuddy -c "Print :NSUIElement" "$PLIST_PATH"
 
 echo "✅ Packaging complete!"
 echo "App bundle located at: $SCRIPT_DIR/$APP_NAME.app"

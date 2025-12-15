@@ -21,8 +21,8 @@ func main() {
 
 	var isWindowVisible bool
 
-	// register globar shortcut
-	hk := hotkey.New([]hotkey.Modifier{hotkey.ModCtrl, hotkey.ModOption}, hotkey.KeyP)
+	// register global shortcut (cross-platform: Ctrl+Alt+P)
+	hk := hotkey.New([]hotkey.Modifier{hotkey.ModCtrl, AltModifier}, hotkey.KeyP)
 
 	go func() {
 		log.Println("--- Adding shortcut. Press CTRL+ALT+P to show window. ---")
@@ -33,8 +33,6 @@ func main() {
 		}
 
 		for range hk.Keydown() {
-			log.Println("Shortcut pressed")
-
 			fyne.Do(func() {
 				if !isWindowVisible {
 					pastyApp.Win.Show()
@@ -63,7 +61,6 @@ func main() {
 
 		quitItem := fyne.NewMenuItem("Quit", func() {
 			log.Println("Exiting...")
-			// a.Quit()
 			pastyApp.App.Quit()
 			a.Quit()
 		})
