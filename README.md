@@ -49,7 +49,8 @@
 - Accessibility permissions for global hotkey support
 
 **Windows**
-- Windows 7 or higher
+- Windows 10 or higher (tested on Windows 10/11)
+- Visual Studio Build Tools or MinGW-w64 (for compiling)
 
 **Linux**
 - X11 display server
@@ -169,6 +170,190 @@ rm -rf data/images/
 
 ---
 
+## 🐧 Linux Installation
+
+### Quick Install (All Distributions)
+
+Run the automated installation script:
+
+```bash
+chmod +x install-linux.sh
+./install-linux.sh
+```
+
+This script automatically detects your distribution (Debian/Ubuntu, Fedora, or Arch) and installs all dependencies.
+
+### Manual Installation
+
+#### Debian/Ubuntu-based Systems
+
+1. **Install dependencies**
+
+```bash
+# Install required packages
+sudo apt-get update
+sudo apt-get install -y build-essential libgl1-mesa-dev xorg-dev xclip
+
+# Install Go 1.24+ if not already installed
+wget https://go.dev/dl/go1.24.3.linux-amd64.tar.gz
+sudo rm -rf /usr/local/go
+sudo tar -C /usr/local -xzf go1.24.3.linux-amd64.tar.gz
+export PATH=$PATH:/usr/local/go/bin
+```
+
+2. **Build the application**
+
+```bash
+git clone https://github.com/yourusername/pasteeclipboard.git
+cd pasteeclipboard
+make
+```
+
+3. **Run the application**
+
+```bash
+./bin/pastee
+```
+
+### Fedora-based Systems
+
+```bash
+# Install dependencies
+sudo dnf install -y gcc libX11-devel libXcursor-devel libXrandr-devel libXinerama-devel mesa-libGL-devel libXi-devel libXxf86vm-devel xclip
+
+# Install Go 1.24+
+wget https://go.dev/dl/go1.24.3.linux-amd64.tar.gz
+sudo rm -rf /usr/local/go
+sudo tar -C /usr/local -xzf go1.24.3.linux-amd64.tar.gz
+export PATH=$PATH:/usr/local/go/bin
+
+# Build and run
+git clone https://github.com/yourusername/pasteeclipboard.git
+cd pasteeclipboard
+make
+./bin/pastee
+```
+
+### Arch-based Systems
+
+```bash
+# Install dependencies
+sudo pacman -S base-devel libgl libx11 libxcursor libxrandr libxinerama libxi xclip
+
+# Install Go 1.24+
+sudo pacman -S go
+
+# Build and run
+git clone https://github.com/yourusername/pasteeclipboard.git
+cd pasteeclipboard
+make
+./bin/pastee
+```
+
+### Running as a Startup Application (Linux)
+
+To run Pastee automatically on login:
+
+**GNOME/Ubuntu:**
+1. Open "Startup Applications"
+2. Click "Add"
+3. Name: Pastee Clipboard
+4. Command: `/full/path/to/pasteeclipboard/bin/pastee`
+5. Click "Add"
+
+**KDE Plasma:**
+1. System Settings → Startup and Shutdown → Autostart
+2. Add Program → Navigate to `/full/path/to/pasteeclipboard/bin/pastee`
+
+**Or create a .desktop file:**
+
+```bash
+mkdir -p ~/.config/autostart
+cat > ~/.config/autostart/pastee.desktop <<EOF
+[Desktop Entry]
+Type=Application
+Name=Pastee Clipboard
+Exec=/full/path/to/pasteeclipboard/bin/pastee
+X-GNOME-Autostart-enabled=true
+EOF
+```
+
+---
+
+## 🪟 Windows Installation
+
+### Quick Install (Windows 10/11)
+
+Run the automated installation script in PowerShell:
+
+```powershell
+# Run PowerShell as Administrator (recommended)
+.\install-windows.ps1
+```
+
+This script will:
+- Check for Go installation
+- Build the application
+- Provide instructions for adding to startup
+
+### Manual Installation
+
+#### Windows 10/11
+
+1. **Install Go 1.24+**
+   - Download from https://go.dev/dl/
+   - Run the installer
+   - Verify: `go version` in PowerShell
+
+2. **Install Build Tools**
+   - Install Visual Studio Build Tools or MinGW-w64
+   - For MinGW: Download from https://www.mingw-w64.org/
+
+3. **Build the application**
+
+```powershell
+# Clone repository
+git clone https://github.com/yourusername/pasteeclipboard.git
+cd pasteeclipboard
+
+# Build
+make
+# Or manually:
+go build -o bin/pastee.exe ./cmd/pastee
+```
+
+4. **Run the application**
+
+```powershell
+.\bin\pastee.exe
+```
+
+### Running on Windows Startup
+
+**Option 1: Using Task Scheduler**
+1. Open Task Scheduler
+2. Create Basic Task → Name: "Pastee Clipboard"
+3. Trigger: "When I log on"
+4. Action: "Start a program"
+5. Program: `C:\path\to\pasteeclipboard\bin\pastee.exe`
+
+**Option 2: Using Startup Folder**
+1. Press `Win + R`, type `shell:startup`
+2. Create a shortcut to `pastee.exe` in the opened folder
+
+### Uninstalling (Windows)
+
+```powershell
+# 1. Close the application (System Tray → Quit)
+# 2. Remove the application folder
+Remove-Item -Recurse -Force C:\path\to\pasteeclipboard
+
+# 3. Remove startup entry if configured
+# From Task Scheduler or Startup folder
+```
+
+---
+
 ## 🧠 Usage
 
 * Press **Ctrl + Alt + P** (or **Ctrl + Option + P** on macOS) to show/hide the clipboard window
@@ -185,6 +370,40 @@ rm -rf data/images/
 We're working on adding support for:
 
 * Max history size
+
+---
+
+## 🛠️ Building for Different Platforms
+
+**Important Note:** Due to CGO dependencies (SQLite, OpenGL), cross-compilation is not straightforward. You must build on the target platform.
+
+### Building on Each Platform
+
+**macOS:**
+```bash
+make                # Builds for current macOS architecture
+./package-mac.sh    # Creates .app bundle
+```
+
+**Linux:**
+```bash
+make                # Builds for current Linux architecture
+./install-linux.sh  # Auto-detects distro and builds
+```
+
+**Windows:**
+```powershell
+make                    # If make is available
+go build -o bin/pastee.exe ./cmd/pastee  # Direct build
+.\install-windows.ps1   # Automated build with checks
+```
+
+### Platform-Specific Notes
+
+- **CGO_ENABLED=1** is required for all platforms (SQLite dependency)
+- Each platform needs its native C compiler (gcc, clang, MinGW, etc.)
+- OpenGL and X11 libraries are required on Linux
+- Build on the target platform for best results
 
 ---
 
@@ -208,6 +427,8 @@ pasteeclipboard/
 ├── data/                # Clipboard history storage (sqlite.db)
 ├── FyneApp.toml         # Fyne app metadata configuration
 ├── package-mac.sh       # macOS app bundle build script
+├── install-linux.sh     # Linux automated installation script
+├── install-windows.ps1  # Windows automated installation script
 ├── Makefile             # Build and run instructions
 └── README.md            # This file
 ```
