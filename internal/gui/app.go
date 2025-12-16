@@ -196,18 +196,12 @@ func (p *PastyClipboard) searchBox() *fyne.Container {
 	searchEntry := widget.NewEntry()
 	searchEntry.SetPlaceHolder(placeholderText)
 
-	clearSearchIcon := widget.NewButtonWithIcon("", theme.CancelIcon(), func() {
-		searchEntry.SetText("")
-		p.updateHistoryUI("")
-	})
-	clearSearchIcon.Importance = widget.LowImportance
-
 	searchEntry.OnChanged = func(s string) {
 		p.updateHistoryUI(s)
 	}
 	searchIcon := widget.NewIcon(theme.SearchIcon())
 
-	return container.NewBorder(nil, nil, searchIcon, clearSearchIcon, searchEntry)
+	return container.NewBorder(nil, nil, searchIcon, nil, searchEntry)
 }
 
 func (p *PastyClipboard) paginator() *fyne.Container {

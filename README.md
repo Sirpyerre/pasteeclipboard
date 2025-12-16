@@ -33,6 +33,12 @@
 
 <img src="https://res.cloudinary.com/dtbpucouh/image/upload/v1754591346/pasteeclipboard/clear-all-pastee-history_lppoe6.png">
 
+** Pastee Clipboard in Windows **
+* Main window and system tray integration
+<img src="https://res.cloudinary.com/dtbpucouh/image/upload/v1765904185/pastee-main-window-in-windows_zjuuhq.png">
+
+<img src="https://res.cloudinary.com/dtbpucouh/image/upload/v1765904185/pastee-system-tray-in-windows_qnemsu.png">
+
 
 ## 🚀 Requirements
 
@@ -447,6 +453,13 @@ pasteeclipboard/
 ### Windows
 * If the global shortcut isn't working, make sure no other application is using Ctrl+Alt+P
 * Run as administrator if you encounter permission issues
+* **Clipboard access notifications**: Windows 10/11 shows notifications when apps access the clipboard as a security feature
+  - These notifications cannot be suppressed from the application side
+  - To disable them system-wide:
+    1. Open Settings → Privacy & Security → Clipboard
+    2. Under "Clipboard history", toggle off "Show clipboard history"
+    3. Or disable notifications for Pastee in Settings → System → Notifications
+  - The app checks the clipboard every 1-2 seconds; this is necessary for real-time monitoring
 
 ### Linux
 * **Clipboard not working?** Install `xclip` or `xsel`:
@@ -460,6 +473,53 @@ pasteeclipboard/
 * Build errors? Ensure you're using Go 1.24+ and CGO is enabled
 * Check that `$GOPATH/bin` is in your `PATH`
 * Run `go mod tidy` to fetch missing dependencies
+
+### Windows-Specific Build Issues
+
+**Problem 1: PowerShell Script Parsing Errors**
+* **Error**: `Falta la cadena en el terminador` (Missing string terminator)
+* **Cause**: Unicode characters (emojis) in PowerShell script causing parsing errors
+* **Solution**: The install script has been updated to use ASCII-only characters. If you encounter this error with older versions, update to the latest `install-windows.ps1`
+
+**Problem 2: gcc Compiler Not Found**
+* **Error**: `cgo: C compiler "gcc" not found: exec: "gcc": executable file not found in %PATH%`
+* **Cause**: MinGW-w64 or Visual Studio Build Tools not installed or not in PATH
+* **Solution**: 
+  1. Install [MinGW-w64](https://www.mingw-w64.org/) or Visual Studio Build Tools
+  2. Add the `bin` directory to your PATH:
+     ```powershell
+     $env:PATH = "C:\path\to\mingw64\bin;$env:PATH"
+     ```
+  3. Verify with: `gcc --version`
+  4. Restart PowerShell and rebuild
+
+**Problem 3: Missing DLL at Runtime**
+* **Error**: `libmfgthread-2.dll` not found when running `pastee.exe`
+* **Cause**: MinGW runtime libraries not in PATH or not distributed with executable
+* **Solution**:
+  - **Temporary**: Add MinGW bin folder to PATH before running
+    ```powershell
+    $env:PATH = "C:\path\to\mingw64\bin;$env:PATH"
+    .\bin\pastee.exe
+    ```
+  - **Permanent**: Add MinGW bin to system PATH via Environment Variables
+  - **For Distribution**: Copy required DLLs to the same folder as `pastee.exe`
+
+**Problem 4: Fyne Preferences API Error**
+* **Error**: `Preferences API requires a unique ID, use app.NewWithID()`
+* **Cause**: Application initialized without unique ID
+* **Solution**: This has been fixed in the code by using `app.NewWithID("pastee.clipboard")`
+
+**Problem 5: Systray Icon Conversion Failed**
+* **Error**: `Failed to convert systray icon - Cause: image: unknown format`
+* **Cause**: Icon file format not recognized or file not properly loaded
+* **Solution**: This has been fixed by properly loading the PNG icon resource with error handling
+
+**General Tips for Windows Build:**
+* Always run PowerShell as Administrator for best results
+* Ensure `CGO_ENABLED=1` is set (the install script does this automatically)
+* Use the automated `install-windows.ps1` script which handles most common issues
+* If build succeeds but execution fails, check that MinGW bin is in your PATH
 
 ---
 

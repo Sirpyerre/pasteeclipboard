@@ -33,7 +33,7 @@ func StartClipboardMonitor(onNewItem func(models.ClipboardItem)) {
 			imageData := clipboard.Read(clipboard.FmtImage)
 			if len(imageData) > 0 {
 				handleImageClipboard(imageData, onNewItem)
-				time.Sleep(1 * time.Second)
+				time.Sleep(1500 * time.Millisecond)
 				continue
 			}
 
@@ -46,7 +46,7 @@ func StartClipboardMonitor(onNewItem func(models.ClipboardItem)) {
 				}
 			}
 
-			time.Sleep(1 * time.Second)
+			time.Sleep(1500 * time.Millisecond)
 		}
 	}()
 }

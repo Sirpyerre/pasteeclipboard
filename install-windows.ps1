@@ -54,8 +54,8 @@ try {
         }
         New-Item -ItemType Directory -Force -Path bin | Out-Null
 
-        # Build
-        go build -o bin/pastee.exe ./cmd/pastee
+        # Build (with -H windowsgui to hide console window)
+        go build -ldflags "-H windowsgui" -o bin/pastee.exe ./cmd/pastee
     }
 
     if (Test-Path "bin/pastee.exe") {
