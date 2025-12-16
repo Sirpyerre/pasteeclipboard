@@ -6,4 +6,5 @@ type ClipboardItem struct {
 	Type        string // "text", "link", "image"
 	ImagePath   string // Full path to the original image
 	PreviewPath string // Full path to the thumbnail preview
+	IsSensitive bool   // Whether content should be hidden by default
 }

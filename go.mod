@@ -4,13 +4,17 @@ go 1.24.3
 
 require (
 	fyne.io/fyne/v2 v2.6.1
-	github.com/mattn/go-sqlite3 v1.14.29
+	github.com/danieljoos/wincred v1.2.3
+	github.com/keybase/go-keychain v0.0.1
+	github.com/mutecomm/go-sqlcipher/v4 v4.4.2
+	github.com/zalando/go-keyring v0.2.6
 	golang.design/x/clipboard v0.7.1
 	golang.design/x/hotkey v0.4.1
 	golang.org/x/image v0.28.0
 )
 
 require (
+	al.essio.dev/pkg/shellescape v1.5.1 // indirect
 	fyne.io/systray v1.11.0 // indirect
 	github.com/BurntSushi/toml v1.4.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -36,7 +40,7 @@ require (
 	github.com/rymdport/portal v0.4.1 // indirect
 	github.com/srwiley/oksvg v0.0.0-20221011165216-be6e8873101c // indirect
 	github.com/srwiley/rasterx v0.0.0-20220730225603-2ab79fcdd4ef // indirect
-	github.com/stretchr/testify v1.10.0 // indirect
+	github.com/stretchr/testify v1.11.1 // indirect
 	github.com/yuin/goldmark v1.7.8 // indirect
 	golang.org/x/exp/shiny v0.0.0-20250606033433-dcc06ee1d476 // indirect
 	golang.org/x/mobile v0.0.0-20250606033058-a2a15c67f36f // indirect

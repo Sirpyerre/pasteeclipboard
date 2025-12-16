@@ -4,10 +4,10 @@
   <img src="https://res.cloudinary.com/dtbpucouh/image/upload/v1754584625/pasteeclipboard/passtee_logo_wcinyp.png" alt="passtee clipboard" width="300">
 </div>
 <p align="center">
-  <strong>Version:</strong> v0.1.1
+  <strong>Version:</strong> v0.2.0
 </p>
 
-**Pastee Clipboard** is a lightweight, cross-platform clipboard manager that lives in your system tray, allowing you to monitor and reuse your clipboard history with ease. Designed with productivity in mind, Pastee works on **macOS, Windows, and Linux** and integrates seamlessly with system-level shortcuts.
+**Pastee Clipboard** is a lightweight, cross-platform clipboard manager that lives in your system tray, allowing you to monitor and reuse your clipboard history with ease. Designed with **security and productivity** in mind, Pastee features **AES-256 database encryption** and **sensitive content protection**, working seamlessly on **macOS, Windows, and Linux** with system-level integration.
 
 ---
 
@@ -22,7 +22,23 @@
 
   <img src="https://res.cloudinary.com/dtbpucouh/image/upload/v1754591347/pasteeclipboard/main-window_d9pxlx.png">
 
-- Persistent clipboard history using SQLite
+- **🔐 Database Encryption (NEW in v0.2.0)**
+  - AES-256 encryption using SQLCipher for clipboard data at rest
+  - Automatic encryption key generation and secure storage in system keychain
+  - One-click migration from unencrypted to encrypted database with automatic backup
+  - Cross-platform keychain integration:
+    - macOS: Keychain Services
+    - Windows: Credential Manager
+    - Linux: Secret Service API (GNOME/KDE)
+
+- **👁️ Sensitive Content Protection (NEW in v0.2.0)**
+  - Mark individual items (passwords, tokens, etc.) as sensitive
+  - Sensitive items are masked with "•••••••• (click to reveal)"
+  - Click on masked content to temporarily reveal it
+  - One-click toggle with intuitive eye icon button
+  - Simple and clean UX - no confusing checkboxes or labels
+
+- Persistent clipboard history using SQLite (now with optional encryption)
 - Simple and intuitive UI built with [Fyne](https://fyne.io)
 - One-click to copy, delete, or clear items
 - Filtering and search functionality
@@ -45,8 +61,12 @@
 ### All Platforms
 - **Go 1.24 or higher**
 - **[Fyne toolkit](https://developer.fyne.io/started/)** (cross-platform GUI library)
-- **SQLite3** (used internally via Go's built-in support)
-- **CGO enabled** (required for SQLite and some platform-specific features)
+- **SQLCipher** (AES-256 encrypted SQLite database)
+- **CGO enabled** (required for SQLCipher and platform-specific features)
+- **Platform-specific keychain libraries** (for secure encryption key storage):
+  - macOS: `github.com/keybase/go-keychain` (Keychain Services)
+  - Windows: `github.com/danieljoos/wincred` (Credential Manager)
+  - Linux: `github.com/zalando/go-keyring` (Secret Service API)
 
 ### Platform-Specific Requirements
 
@@ -362,12 +382,54 @@ Remove-Item -Recurse -Force C:\path\to\pasteeclipboard
 
 ## 🧠 Usage
 
+### Basic Operations
 * Press **Ctrl + Alt + P** (or **Ctrl + Option + P** on macOS) to show/hide the clipboard window
 * Click the **menu bar icon** (macOS) or **system tray icon** (Windows/Linux) to toggle the window or quit the app
 * Use the **filter input** to search your clipboard history
 * Use the **clear all** button to delete the history (with confirmation)
 * Click the **trash icon** on an item to delete it from the list and DB
 * Click an item to copy it back to your clipboard
+
+### 🔐 Encryption Features (v0.2.0+)
+
+**First-time setup:**
+- On first run, if you have an existing unencrypted database, you'll see a migration dialog
+- Choose "OK" to encrypt your database with AES-256
+- Choose "Cancel" to continue using unencrypted database (you can migrate later)
+- The app automatically generates a 256-bit encryption key and stores it securely in your system keychain
+
+**What's encrypted:**
+- All clipboard text content
+- All clipboard metadata (timestamps, types)
+- Database is encrypted at rest on disk
+- Cannot be read with standard SQLite tools
+
+**What's NOT encrypted:**
+- Memory while app is running
+- System clipboard (when you copy an item)
+- Image files (stored separately in `data/images/`)
+
+### 👁️ Sensitive Content Protection (v0.2.0+)
+
+**Marking items as sensitive:**
+1. Find a text item you want to protect (e.g., password, API token)
+2. Click the **eye icon button** (👁️) on the right side of the item
+3. The content will be masked with "•••••••• (click to reveal)"
+4. The eye icon will be highlighted to show it's protected
+
+**Revealing sensitive content:**
+1. Click on the masked text "•••••••• (click to reveal)"
+2. The actual content will be shown temporarily
+3. Click again to hide it
+
+**Unmarking as sensitive:**
+1. Click the **highlighted eye icon** (👁️‍🗨️) again
+2. The item returns to normal display
+
+**Visual indicators:**
+- 👁️ **Gray eye icon** = Not sensitive
+- 👁️‍🗨️ **Highlighted/Blue eye icon** = Sensitive (protected)
+- "•••••••• (click to reveal)" = Content is hidden
 
 ---
 
@@ -427,10 +489,26 @@ pasteeclipboard/
 │       └── assets/                      # Icons and embedded resources
 ├── internal/
 │   ├── gui/             # UI and window logic
-│   ├── database/        # SQLite integration
+│   │   ├── app.go       # Main application window
+│   │   ├── components.go # UI components (history items, buttons)
+│   │   └── dialogs.go   # Migration and confirmation dialogs
+│   ├── database/        # Database layer
+│   │   ├── database.go  # Database initialization and encryption
+│   │   └── clipboard_store.go # CRUD operations
+│   ├── encryption/      # Encryption features (v0.2.0+)
+│   │   ├── cipher.go    # SQLCipher integration
+│   │   └── migration.go # Database migration utilities
+│   ├── keystore/        # Secure key storage (v0.2.0+)
+│   │   ├── keystore.go           # Cross-platform interface
+│   │   ├── keystore_darwin.go    # macOS Keychain
+│   │   ├── keystore_windows.go   # Windows Credential Manager
+│   │   ├── keystore_linux.go     # Linux Secret Service
+│   │   └── generator.go          # Encryption key generation
 │   ├── monitor/         # Clipboard listener and hook management
 │   └── models/          # Data structures
-├── data/                # Clipboard history storage (sqlite.db)
+├── data/                # Clipboard history storage
+│   ├── clipboard_encrypted.db  # Encrypted database (v0.2.0+)
+│   └── images/                 # Image clipboard items
 ├── FyneApp.toml         # Fyne app metadata configuration
 ├── package-mac.sh       # macOS app bundle build script
 ├── install-linux.sh     # Linux automated installation script
@@ -473,6 +551,38 @@ pasteeclipboard/
 * Build errors? Ensure you're using Go 1.24+ and CGO is enabled
 * Check that `$GOPATH/bin` is in your `PATH`
 * Run `go mod tidy` to fetch missing dependencies
+
+### Encryption & Keychain (v0.2.0+)
+
+**macOS - Keychain Access Prompt:**
+* When first using encryption, macOS will prompt for your login password
+* This is normal - the app needs permission to store the encryption key in your Keychain
+* Choose "Always Allow" to avoid being prompted every time
+* The encryption key is stored securely as: Service: `com.pastee.clipboard`, Account: `database-encryption-key`
+* You can view/delete the key in Keychain Access.app
+
+**Windows - Credential Manager:**
+* Encryption keys are stored in Windows Credential Manager
+* View credentials: Control Panel → Credential Manager → Windows Credentials
+* Look for `com.pastee.clipboard`
+
+**Linux - Secret Service:**
+* Requires GNOME Keyring or KDE Wallet to be running
+* The encryption key is stored using the Secret Service API
+* If you don't have a keyring daemon running, the app may fail to store keys
+
+**Database Migration Issues:**
+* If migration fails, your original database is safe and unchanged
+* A backup is created at `data/clipboard.db.backup.[timestamp]` before migration
+* You can manually restore by renaming the backup file
+* Check logs for specific error messages
+
+**Verifying Encryption:**
+* To verify your database is encrypted, try opening it with sqlite3:
+  ```bash
+  sqlite3 data/clipboard_encrypted.db "SELECT * FROM clipboard_history;"
+  # Should fail with: "Error: file is not a database"
+  ```
 
 ### Windows-Specific Build Issues
 
@@ -539,11 +649,34 @@ make clean && make
 ```
 
 ## Versioning
-Current version v0.1.1
+Current version v0.2.0
 
 # Changelog
 
-**v0.1.1 - macOS UI Agent Enhancement**
+**v0.2.0 - Security & Privacy Features** (December 2024)
+- 🔐 **Database Encryption**: AES-256 encryption using SQLCipher
+  - Automatic encryption key generation (256-bit)
+  - Secure key storage in system keychain (macOS Keychain, Windows Credential Manager, Linux Secret Service)
+  - One-click migration from unencrypted to encrypted database
+  - Automatic backup creation before migration
+  - Cross-platform keychain integration
+- 👁️ **Sensitive Content Protection**: Mark and hide sensitive clipboard items
+  - One-click toggle with eye icon button
+  - Content masked as "•••••••• (click to reveal)"
+  - Click-to-reveal functionality for temporary viewing
+  - Clean and intuitive UX design
+  - Per-item sensitivity flag stored in database
+- 🏗️ **Architecture improvements**:
+  - New `internal/encryption/` package for SQLCipher integration
+  - New `internal/keystore/` package with platform-specific implementations
+  - Enhanced database layer with encryption support
+  - Migration dialogs and user flow
+- 📦 **Dependencies updated**:
+  - Added SQLCipher (AES-256 encrypted SQLite)
+  - Added platform-specific keychain libraries
+  - Updated database schema with `is_sensitive` column
+
+**v0.1.1 - macOS UI Agent Enhancement** (January 2024)
 - 🍎 macOS now runs as a UI Agent (menu bar only, no Dock icon)
 - 🔧 Added `activation_policy_darwin.go` for proper macOS integration
 - 📦 Added `package-mac.sh` script for building macOS app bundles
