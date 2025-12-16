@@ -2,6 +2,11 @@ package gui
 
 import (
 	"fmt"
+	"log"
+	"math"
+	"strconv"
+	"strings"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
@@ -10,10 +15,6 @@ import (
 	"github.com/Sirpyerre/pasteeclipboard/internal/database"
 	"github.com/Sirpyerre/pasteeclipboard/internal/models"
 	"github.com/Sirpyerre/pasteeclipboard/internal/monitor"
-	"log"
-	"math"
-	"strconv"
-	"strings"
 )
 
 // Constants for UI strings and values
@@ -46,7 +47,7 @@ type PastyClipboard struct {
 	pageSizeSelect *widget.Select
 }
 
-func NewPastyClipboard(a fyne.App) *PastyClipboard {
+func NewPastyClipboard(a fyne.App, icon fyne.Resource) *PastyClipboard {
 	if _, err := database.InitDB(); err != nil {
 		log.Fatal("error initializing database:", err)
 	}
@@ -56,9 +57,12 @@ func NewPastyClipboard(a fyne.App) *PastyClipboard {
 		log.Fatal("error getting clipboard history:", err)
 	}
 
+	window := a.NewWindow("Pastee Clipboard")
+	window.SetIcon(icon)
+
 	p := &PastyClipboard{
 		App:              a,
-		Win:              a.NewWindow("Pastee Clipboard"),
+		Win:              window,
 		clipboardHistory: items,
 	}
 
