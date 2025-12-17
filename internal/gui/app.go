@@ -2,6 +2,11 @@ package gui
 
 import (
 	"fmt"
+	"log"
+	"math"
+	"strconv"
+	"strings"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
@@ -10,10 +15,6 @@ import (
 	"github.com/Sirpyerre/pasteeclipboard/internal/database"
 	"github.com/Sirpyerre/pasteeclipboard/internal/models"
 	"github.com/Sirpyerre/pasteeclipboard/internal/monitor"
-	"log"
-	"math"
-	"strconv"
-	"strings"
 )
 
 // Constants for UI strings and values
@@ -46,23 +47,82 @@ type PastyClipboard struct {
 	pageSizeSelect *widget.Select
 }
 
-func NewPastyClipboard(a fyne.App) *PastyClipboard {
-	if _, err := database.InitDB(); err != nil {
+func NewPastyClipboard(a fyne.App, icon fyne.Resource) *PastyClipboard {
+	_, needsMigration, err := database.InitDB()
+	if err != nil {
 		log.Fatal("error initializing database:", err)
 	}
 
+	window := a.NewWindow("Pastee Clipboard")
+	window.SetIcon(icon)
+
+	p := &PastyClipboard{
+		App: a,
+		Win: window,
+	}
+
+	p.Win.Resize(fyne.NewSize(400, 500))
+
+	if needsMigration {
+		log.Println("Migration needed - showing dialog to user")
+		// Set minimal content before showing dialog
+		p.Win.SetContent(widget.NewLabel("Initializing..."))
+		p.Win.Show()
+		p.showMigrationDialogAndInit()
+	} else {
+		p.initializeApp()
+	}
+
+	return p
+}
+
+func (p *PastyClipboard) showMigrationDialogAndInit() {
+	ShowMigrationDialog(p.Win,
+		func() {
+			p.performMigration()
+		},
+		func() {
+			log.Println("User chose to skip encryption")
+			p.initializeApp()
+		},
+	)
+}
+
+func (p *PastyClipboard) performMigration() {
+	progressDialog := ShowMigrationProgressDialog(p.Win)
+
+	go func() {
+		log.Println("Starting database migration...")
+		err := database.PerformMigration()
+
+		fyne.Do(func() {
+			progressDialog.Hide()
+
+			if err != nil {
+				log.Printf("Migration failed: %v", err)
+				ShowMigrationErrorDialog(p.Win, err)
+				p.initializeApp()
+			} else {
+				log.Println("Migration completed successfully")
+				ShowMigrationSuccessDialog(p.Win, func() {
+					_, _, err := database.InitDB()
+					if err != nil {
+						log.Fatal("error re-initializing database after migration:", err)
+					}
+					p.initializeApp()
+				})
+			}
+		})
+	}()
+}
+
+func (p *PastyClipboard) initializeApp() {
 	items, err := database.GetClipboardHistory(100)
 	if err != nil {
 		log.Fatal("error getting clipboard history:", err)
 	}
 
-	p := &PastyClipboard{
-		App:              a,
-		Win:              a.NewWindow("Pastee Clipboard"),
-		clipboardHistory: items,
-	}
-
-	p.Win.Resize(fyne.NewSize(400, 500))
+	p.clipboardHistory = items
 	p.setupUI()
 
 	monitor.StartClipboardMonitor(func(newItem models.ClipboardItem) {
@@ -79,20 +139,16 @@ func NewPastyClipboard(a fyne.App) *PastyClipboard {
 		})
 
 		fyne.Do(func() {
-			// Remove the item if it already exists (duplicate handling)
 			var newHistory []models.ClipboardItem
 			for _, item := range p.clipboardHistory {
 				if item.ID != newItem.ID {
 					newHistory = append(newHistory, item)
 				}
 			}
-			// Prepend the item to the top
 			p.clipboardHistory = append([]models.ClipboardItem{newItem}, newHistory...)
 			p.updateHistoryUI("")
 		})
 	})
-
-	return p
 }
 
 func (p *PastyClipboard) setupUI() {
@@ -148,17 +204,26 @@ func (p *PastyClipboard) updateHistoryUI(query string) {
 		visibleItems := filteredItems[startIndex:endIndex]
 
 		for _, item := range visibleItems {
-			p.historyContainer.Add(CreateHistoryItemUI(item, func(deletedItem models.ClipboardItem) {
-				_ = database.DeleteClipboardItem(item.ID)
-				var newHistory []models.ClipboardItem
-				for _, hItem := range p.clipboardHistory {
-					if hItem.ID != deletedItem.ID {
-						newHistory = append(newHistory, hItem)
+			p.historyContainer.Add(CreateHistoryItemUI(item,
+				func(deletedItem models.ClipboardItem) {
+					_ = database.DeleteClipboardItem(item.ID)
+					var newHistory []models.ClipboardItem
+					for _, hItem := range p.clipboardHistory {
+						if hItem.ID != deletedItem.ID {
+							newHistory = append(newHistory, hItem)
+						}
 					}
-				}
-				p.clipboardHistory = newHistory
-				p.updateHistoryUI(query)
-			}))
+					p.clipboardHistory = newHistory
+					p.updateHistoryUI(query)
+				},
+				func() {
+					items, err := database.GetClipboardHistory(100)
+					if err == nil {
+						p.clipboardHistory = items
+					}
+					p.updateHistoryUI(query)
+				},
+			))
 		}
 	} else {
 		p.historyContainer.Add(widget.NewLabel(noHistoryText))
@@ -192,18 +257,12 @@ func (p *PastyClipboard) searchBox() *fyne.Container {
 	searchEntry := widget.NewEntry()
 	searchEntry.SetPlaceHolder(placeholderText)
 
-	clearSearchIcon := widget.NewButtonWithIcon("", theme.CancelIcon(), func() {
-		searchEntry.SetText("")
-		p.updateHistoryUI("")
-	})
-	clearSearchIcon.Importance = widget.LowImportance
-
 	searchEntry.OnChanged = func(s string) {
 		p.updateHistoryUI(s)
 	}
 	searchIcon := widget.NewIcon(theme.SearchIcon())
 
-	return container.NewBorder(nil, nil, searchIcon, clearSearchIcon, searchEntry)
+	return container.NewBorder(nil, nil, searchIcon, nil, searchEntry)
 }
 
 func (p *PastyClipboard) paginator() *fyne.Container {

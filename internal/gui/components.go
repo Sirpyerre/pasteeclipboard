@@ -14,12 +14,15 @@ import (
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
+	"github.com/Sirpyerre/pasteeclipboard/internal/database"
 	"github.com/Sirpyerre/pasteeclipboard/internal/models"
 	"github.com/Sirpyerre/pasteeclipboard/internal/monitor"
 	"golang.design/x/clipboard"
 )
 
-func CreateHistoryItemUI(item models.ClipboardItem, onDelete func(models.ClipboardItem)) fyne.CanvasObject {
+var revealedItems = make(map[int]bool)
+
+func CreateHistoryItemUI(item models.ClipboardItem, onDelete func(models.ClipboardItem), onRefresh func()) fyne.CanvasObject {
 	var contentDisplay fyne.CanvasObject
 
 	if item.Type == "image" {
@@ -33,11 +36,29 @@ func CreateHistoryItemUI(item models.ClipboardItem, onDelete func(models.Clipboa
 			contentDisplay = widget.NewLabel("[Image]")
 		}
 	} else {
-		// Display text content (truncated to first 3 lines)
-		displayText := truncateToLines(item.Content, 3, 80)
+		// Display text content (masked if sensitive and not revealed)
+		var displayText string
+		if item.IsSensitive && !revealedItems[item.ID] {
+			displayText = "•••••••• (click to reveal)"
+		} else {
+			displayText = truncateToLines(item.Content, 3, 80)
+		}
 		contentLabel := widget.NewLabelWithStyle(displayText, fyne.TextAlignLeading, fyne.TextStyle{Monospace: false})
 		contentLabel.Wrapping = fyne.TextWrapWord
-		contentDisplay = contentLabel
+
+		// Make sensitive content clickable to reveal
+		if item.IsSensitive {
+			contentButton := widget.NewButton("", func() {
+				revealedItems[item.ID] = !revealedItems[item.ID]
+				if onRefresh != nil {
+					onRefresh()
+				}
+			})
+			contentButton.Importance = widget.LowImportance
+			contentDisplay = container.NewStack(contentLabel, contentButton)
+		} else {
+			contentDisplay = contentLabel
+		}
 	}
 
 	var typeIcon fyne.CanvasObject
@@ -52,17 +73,50 @@ func CreateHistoryItemUI(item models.ClipboardItem, onDelete func(models.Clipboa
 		typeIcon = widget.NewIcon(theme.QuestionIcon())
 	}
 
+	// Create action buttons container
+	actionButtons := container.NewHBox()
+
+	// Add sensitivity toggle for text items (lock icon)
+	if item.Type != "image" {
+		var lockIcon fyne.Resource
+		var lockImportance widget.ButtonImportance
+		if item.IsSensitive {
+			lockIcon = theme.VisibilityOffIcon()
+			lockImportance = widget.HighImportance
+		} else {
+			lockIcon = theme.VisibilityIcon()
+			lockImportance = widget.LowImportance
+		}
+
+		lockButton := widget.NewButtonWithIcon("", lockIcon, func() {
+			newSensitivity := !item.IsSensitive
+			if err := database.UpdateItemSensitivity(item.ID, newSensitivity); err != nil {
+				log.Printf("Failed to update sensitivity: %v", err)
+				return
+			}
+			// Clear reveal state when toggling sensitivity
+			delete(revealedItems, item.ID)
+			if onRefresh != nil {
+				onRefresh()
+			}
+		})
+		lockButton.Importance = lockImportance
+		actionButtons.Add(lockButton)
+	}
+
+	// Add delete button
 	deleteButton := widget.NewButtonWithIcon("", theme.DeleteIcon(), func() {
 		if onDelete != nil {
 			onDelete(item)
 		}
 	})
 	deleteButton.Importance = widget.LowImportance
+	actionButtons.Add(deleteButton)
 
-	itemContent := container.New(layout.NewBorderLayout(nil, nil, typeIcon, deleteButton),
+	itemContent := container.New(layout.NewBorderLayout(nil, nil, typeIcon, actionButtons),
 		typeIcon,
 		contentDisplay,
-		deleteButton,
+		actionButtons,
 	)
 
 	background := canvas.NewRectangle(theme.Color(theme.ColorNameBackground))

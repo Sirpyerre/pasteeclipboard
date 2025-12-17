@@ -16,8 +16,9 @@ import (
 var iconData []byte
 
 func main() {
-	a := app.New()
-	pastyApp := gui.NewPastyClipboard(a)
+	a := app.NewWithID("pastee.clipboard")
+	icon := fyne.NewStaticResource("icon.png", iconData)
+	pasteeApp := gui.NewPastyClipboard(a, icon)
 
 	var isWindowVisible bool
 
@@ -35,11 +36,11 @@ func main() {
 		for range hk.Keydown() {
 			fyne.Do(func() {
 				if !isWindowVisible {
-					pastyApp.Win.Show()
+					pasteeApp.Win.Show()
 					isWindowVisible = true
-					pastyApp.Win.RequestFocus()
+					pasteeApp.Win.RequestFocus()
 				} else {
-					pastyApp.Win.Hide()
+					pasteeApp.Win.Hide()
 					isWindowVisible = false
 				}
 			})
@@ -50,37 +51,39 @@ func main() {
 	if desk, ok := a.(desktop.App); ok {
 		showHideItem := fyne.NewMenuItem("Show/Hide", func() {
 			if isWindowVisible {
-				pastyApp.Win.Hide()
+				pasteeApp.Win.Hide()
 				isWindowVisible = false
 			} else {
-				pastyApp.Win.Show()
-				pastyApp.Win.RequestFocus()
+				pasteeApp.Win.Show()
+				pasteeApp.Win.RequestFocus()
 				isWindowVisible = true
 			}
 		})
 
 		quitItem := fyne.NewMenuItem("Quit", func() {
 			log.Println("Exiting...")
-			pastyApp.App.Quit()
+			pasteeApp.App.Quit()
 			a.Quit()
 		})
 
 		menu := fyne.NewMenu("Pastee Clipboard", showHideItem, fyne.NewMenuItemSeparator(), quitItem)
+
+		icon := fyne.NewStaticResource("icon.png", iconData)
+		desk.SetSystemTrayIcon(icon)
 		desk.SetSystemTrayMenu(menu)
-		desk.SetSystemTrayIcon(fyne.NewStaticResource("pasteeIcon", iconData))
 	}
 
-	pastyApp.Win.Resize(fyne.NewSize(400, 600))
-	pastyApp.Win.SetCloseIntercept(func() {
-		pastyApp.Win.Hide()
+	pasteeApp.Win.Resize(fyne.NewSize(400, 600))
+	pasteeApp.Win.SetCloseIntercept(func() {
+		pasteeApp.Win.Hide()
 		isWindowVisible = false
 	})
 
 	// default hide window
-	pastyApp.Win.Hide()
+	pasteeApp.Win.Hide()
 	isWindowVisible = false
 
-	pastyApp.App.Run()
+	pasteeApp.App.Run()
 
-	log.Println("Finished running Pasty Clipboard")
+	log.Println("Finished running Pastee Clipboard")
 }

@@ -60,7 +60,11 @@ all: build
 build:
 	@echo Building for $(GOOS)/$(GOARCH)...
 	@$(MKDIR)
+ifeq ($(OS),Windows_NT)
+	$(SETEVARS) go build -ldflags "-H windowsgui" -o $(BUILD_DIR)/$(BINARY_NAME)$(EXE) $(MAIN_PACKAGE)
+else
 	$(SETEVARS) go build -o $(BUILD_DIR)/$(BINARY_NAME)$(EXE) $(MAIN_PACKAGE)
+endif
 	@echo Binary generated at $(BUILD_DIR)/$(BINARY_NAME)$(EXE)
 
 run:

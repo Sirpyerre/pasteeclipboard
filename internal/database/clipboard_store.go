@@ -47,7 +47,7 @@ func InsertImageItem(imagePath, previewPath, imageHash, itemType string) (int64,
 }
 
 func GetClipboardHistory(limit int) ([]models.ClipboardItem, error) {
-	stmt := `SELECT id, content, type, COALESCE(image_path, ''), COALESCE(preview_path, '') FROM clipboard_history ORDER BY created_at DESC LIMIT ?`
+	stmt := `SELECT id, content, type, COALESCE(image_path, ''), COALESCE(preview_path, ''), COALESCE(is_sensitive, 0) FROM clipboard_history ORDER BY created_at DESC LIMIT ?`
 	rows, err := db.Query(stmt, limit)
 	if err != nil {
 		return nil, err
@@ -57,7 +57,7 @@ func GetClipboardHistory(limit int) ([]models.ClipboardItem, error) {
 	var items []models.ClipboardItem
 	for rows.Next() {
 		var item models.ClipboardItem
-		if err := rows.Scan(&item.ID, &item.Content, &item.Type, &item.ImagePath, &item.PreviewPath); err != nil {
+		if err := rows.Scan(&item.ID, &item.Content, &item.Type, &item.ImagePath, &item.PreviewPath, &item.IsSensitive); err != nil {
 			return nil, err
 		}
 		items = append(items, item)
@@ -145,9 +145,9 @@ func CheckDuplicateContent(content string) (bool, error) {
 
 // GetItemByContent retrieves an existing item by its content
 func GetItemByContent(content string) (*models.ClipboardItem, error) {
-	stmt := `SELECT id, content, type, COALESCE(image_path, ''), COALESCE(preview_path, '') FROM clipboard_history WHERE content = ? LIMIT 1`
+	stmt := `SELECT id, content, type, COALESCE(image_path, ''), COALESCE(preview_path, ''), COALESCE(is_sensitive, 0) FROM clipboard_history WHERE content = ? LIMIT 1`
 	var item models.ClipboardItem
-	err := db.QueryRow(stmt, content).Scan(&item.ID, &item.Content, &item.Type, &item.ImagePath, &item.PreviewPath)
+	err := db.QueryRow(stmt, content).Scan(&item.ID, &item.Content, &item.Type, &item.ImagePath, &item.PreviewPath, &item.IsSensitive)
 	if err != nil {
 		return nil, err
 	}
@@ -156,9 +156,9 @@ func GetItemByContent(content string) (*models.ClipboardItem, error) {
 
 // GetItemByImagePath retrieves an existing item by its image path
 func GetItemByImagePath(imagePath string) (*models.ClipboardItem, error) {
-	stmt := `SELECT id, content, type, COALESCE(image_path, ''), COALESCE(preview_path, '') FROM clipboard_history WHERE image_path = ? LIMIT 1`
+	stmt := `SELECT id, content, type, COALESCE(image_path, ''), COALESCE(preview_path, ''), COALESCE(is_sensitive, 0) FROM clipboard_history WHERE image_path = ? LIMIT 1`
 	var item models.ClipboardItem
-	err := db.QueryRow(stmt, imagePath).Scan(&item.ID, &item.Content, &item.Type, &item.ImagePath, &item.PreviewPath)
+	err := db.QueryRow(stmt, imagePath).Scan(&item.ID, &item.Content, &item.Type, &item.ImagePath, &item.PreviewPath, &item.IsSensitive)
 	if err != nil {
 		return nil, err
 	}
@@ -185,11 +185,18 @@ func CheckDuplicateImageHash(imageHash string) (bool, error) {
 
 // GetItemByImageHash retrieves an existing item by its image hash
 func GetItemByImageHash(imageHash string) (*models.ClipboardItem, error) {
-	stmt := `SELECT id, content, type, COALESCE(image_path, ''), COALESCE(preview_path, '') FROM clipboard_history WHERE image_hash = ? LIMIT 1`
+	stmt := `SELECT id, content, type, COALESCE(image_path, ''), COALESCE(preview_path, ''), COALESCE(is_sensitive, 0) FROM clipboard_history WHERE image_hash = ? LIMIT 1`
 	var item models.ClipboardItem
-	err := db.QueryRow(stmt, imageHash).Scan(&item.ID, &item.Content, &item.Type, &item.ImagePath, &item.PreviewPath)
+	err := db.QueryRow(stmt, imageHash).Scan(&item.ID, &item.Content, &item.Type, &item.ImagePath, &item.PreviewPath, &item.IsSensitive)
 	if err != nil {
 		return nil, err
 	}
 	return &item, nil
+}
+
+// UpdateItemSensitivity updates the sensitivity flag for a clipboard item
+func UpdateItemSensitivity(id int, isSensitive bool) error {
+	stmt := `UPDATE clipboard_history SET is_sensitive = ? WHERE id = ?`
+	_, err := db.Exec(stmt, isSensitive, id)
+	return err
 }
