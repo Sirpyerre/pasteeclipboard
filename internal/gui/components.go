@@ -66,7 +66,11 @@ func CreateHistoryItemUI(item models.ClipboardItem, onDelete func(models.Clipboa
 	case "text":
 		typeIcon = widget.NewIcon(theme.DocumentIcon())
 	case "link":
-		typeIcon = widget.NewIcon(theme.MailForwardIcon())
+		typeIcon = widget.NewIcon(theme.ComputerIcon())
+	case "email":
+		typeIcon = widget.NewIcon(theme.MailComposeIcon())
+	case "phone":
+		typeIcon = widget.NewIcon(theme.AccountIcon())
 	case "image":
 		typeIcon = widget.NewIcon(theme.MediaPhotoIcon())
 	default:
