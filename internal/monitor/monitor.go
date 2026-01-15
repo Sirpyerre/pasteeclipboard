@@ -62,6 +62,12 @@ func StartClipboardMonitor(onNewItem func(models.ClipboardItem)) {
 func handleTextClipboard(content string, onNewItem func(models.ClipboardItem)) {
 	lastContent = content
 
+	// Truncate if content exceeds max length
+	if len(content) > database.MaxTextLength {
+		content = content[:database.MaxTextLength] + "\n... (truncated)"
+		log.Printf("Content truncated to %d bytes\n", database.MaxTextLength)
+	}
+
 	// Detect content type
 	contentType := detectContentType(content)
 
@@ -94,6 +100,11 @@ func handleTextClipboard(content string, onNewItem func(models.ClipboardItem)) {
 		if err != nil {
 			log.Println("error inserting clipboard item:", err)
 		} else {
+			// Enforce history limit
+			if err := database.EnforceHistoryLimit(); err != nil {
+				log.Println("error enforcing history limit:", err)
+			}
+
 			items, err := database.GetClipboardHistory(1)
 			if err == nil && len(items) > 0 {
 				items[0].ID = int(id)
@@ -200,6 +211,11 @@ func handleImageClipboard(imageData []byte, onNewItem func(models.ClipboardItem)
 		// Clean up saved files if database insert fails
 		imageutil.DeleteImage(fullPath, thumbPath)
 		return
+	}
+
+	// Enforce history limit
+	if err := database.EnforceHistoryLimit(); err != nil {
+		log.Println("error enforcing history limit:", err)
 	}
 
 	// Notify UI
