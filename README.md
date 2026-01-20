@@ -4,7 +4,7 @@
   <img src="https://res.cloudinary.com/dtbpucouh/image/upload/v1754584625/pasteeclipboard/passtee_logo_wcinyp.png" alt="passtee clipboard" width="300">
 </div>
 <p align="center">
-  <strong>Version:</strong> v0.2.0
+  <strong>Version:</strong> v0.2.1
 </p>
 
 **Pastee Clipboard** is a lightweight, cross-platform clipboard manager that lives in your system tray, allowing you to monitor and reuse your clipboard history with ease. Designed with **security and productivity** in mind, Pastee features **AES-256 database encryption** and **sensitive content protection**, working seamlessly on **macOS, Windows, and Linux** with system-level integration.
@@ -37,6 +37,24 @@
   - Click on masked content to temporarily reveal it
   - One-click toggle with intuitive eye icon button
   - Simple and clean UX - no confusing checkboxes or labels
+
+- **📋 Content Type Detection (NEW in v0.2.1)**
+  - Automatic detection of clipboard content types
+  - Distinct icons for each type:
+    - 📄 Text (DocumentIcon)
+    - 🔗 Links/URLs (ComputerIcon)
+    - 📧 Email addresses (MailComposeIcon)
+    - 👤 Phone numbers (AccountIcon)
+    - 🖼️ Images (MediaPhotoIcon)
+
+- **⚡ Auto-hide Window (NEW in v0.2.1)**
+  - Window automatically hides after copying an item
+  - Allows immediate pasting without manually closing the window
+
+- **📏 Storage Limits (NEW in v0.2.1)**
+  - Maximum text length: 50 KB per item (truncated with marker if exceeded)
+  - Maximum history items: 100 (oldest items automatically removed)
+  - Prevents database saturation and maintains performance
 
 - Persistent clipboard history using SQLite (now with optional encryption)
 - Simple and intuitive UI built with [Fyne](https://fyne.io)
@@ -433,11 +451,11 @@ Remove-Item -Recurse -Force C:\path\to\pasteeclipboard
 
 ---
 
-## 🔧 Configuration (coming soon)
+## 🔧 Configuration
 
-We're working on adding support for:
-
-* Max history size
+**Built-in Limits (v0.2.1+)**
+- **Max text length**: 50 KB per clipboard item (content is truncated if exceeded)
+- **Max history items**: 100 items (oldest items are automatically removed when limit is reached)
 
 ---
 
@@ -527,6 +545,11 @@ pasteeclipboard/
 * **App not visible after launching?** The app runs as a UI Agent and appears only in the menu bar (top-right). Look for the Pastee icon near the clock.
 * **Still seeing Dock icon?** Rebuild the app with `./package-mac.sh` to ensure LSUIElement is properly set
 * **Global hotkey**: On macOS, the shortcut is **Ctrl + Option + P** (Option is the Alt key)
+* **"The application cannot be opened for an unexpected reason" error**: This occurs when the app bundle's code signature is invalidated after modifying the Info.plist. The `package-mac.sh` script automatically fixes this, but if you encounter this error manually, run:
+  ```bash
+  xattr -cr pastee.app
+  codesign --force --deep --sign - pastee.app
+  ```
 
 ### Windows
 * If the global shortcut isn't working, make sure no other application is using Ctrl+Alt+P
@@ -649,9 +672,15 @@ make clean && make
 ```
 
 ## Versioning
-Current version v0.2.0
+Current version v0.2.1
 
 # Changelog
+
+**v0.2.1 - UX Improvements & Storage Limits** (January 2025)
+- 📋 **Content Type Detection**: Automatic detection with distinct icons for text, links, emails, phone numbers, and images
+- ⚡ **Auto-hide Window**: Window automatically hides after copying an item for seamless workflow
+- 📏 **Storage Limits**: 50 KB max text length and 100 max history items to prevent database saturation
+- 🔧 **macOS Package Fix**: Fixed code signing issue after plist modification in `package-mac.sh`
 
 **v0.2.0 - Security & Privacy Features** (December 2024)
 - 🔐 **Database Encryption**: AES-256 encryption using SQLCipher

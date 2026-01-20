@@ -46,6 +46,12 @@ echo "⚙️ Verifying Info.plist settings..."
 /usr/libexec/PlistBuddy -c "Print :LSUIElement" "$PLIST_PATH"
 /usr/libexec/PlistBuddy -c "Print :NSUIElement" "$PLIST_PATH"
 
+echo "⚙️ Removing quarantine attribute..."
+xattr -cr "$SCRIPT_DIR/$APP_NAME.app"
+
+echo "⚙️ Re-signing app bundle (required after plist modification)..."
+codesign --force --deep --sign - "$SCRIPT_DIR/$APP_NAME.app"
+
 echo "✅ Packaging complete!"
 echo "App bundle located at: $SCRIPT_DIR/$APP_NAME.app"
 echo "Run with: open \"$SCRIPT_DIR/$APP_NAME.app\""
