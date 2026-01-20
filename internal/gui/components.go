@@ -22,7 +22,7 @@ import (
 
 var revealedItems = make(map[int]bool)
 
-func CreateHistoryItemUI(item models.ClipboardItem, onDelete func(models.ClipboardItem), onRefresh func()) fyne.CanvasObject {
+func CreateHistoryItemUI(item models.ClipboardItem, onDelete func(models.ClipboardItem), onRefresh func(), onCopy func()) fyne.CanvasObject {
 	var contentDisplay fyne.CanvasObject
 
 	if item.Type == "image" {
@@ -133,6 +133,9 @@ func CreateHistoryItemUI(item models.ClipboardItem, onDelete func(models.Clipboa
 			} else {
 				monitor.IgnoreNextClipboardRead()
 				log.Println("Image copied to clipboard")
+				if onCopy != nil {
+					onCopy()
+				}
 			}
 		} else {
 			// Copy text to clipboard
@@ -140,6 +143,9 @@ func CreateHistoryItemUI(item models.ClipboardItem, onDelete func(models.Clipboa
 			monitor.IgnoreNextClipboardRead()
 			monitor.SetLastClipboardContent(item.Content)
 			log.Printf("Contenido copiado: %s\n", item.Content)
+			if onCopy != nil {
+				onCopy()
+			}
 		}
 	})
 	card.Importance = widget.LowImportance

@@ -30,7 +30,7 @@ const (
 )
 
 // Constant for pagination options
-var pageSizeOptions = []string{"2", "4", "6", "8"}
+var pageSizeOptions = []string{"10", "20", "30", "40"}
 
 type PastyClipboard struct {
 	App              fyne.App
@@ -222,6 +222,9 @@ func (p *PastyClipboard) updateHistoryUI(query string) {
 						p.clipboardHistory = items
 					}
 					p.updateHistoryUI(query)
+				},
+				func() {
+					p.Win.Hide()
 				},
 			))
 		}
