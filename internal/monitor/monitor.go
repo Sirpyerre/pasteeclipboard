@@ -5,12 +5,20 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"log"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/Sirpyerre/pasteeclipboard/internal/database"
 	"github.com/Sirpyerre/pasteeclipboard/internal/imageutil"
 	"github.com/Sirpyerre/pasteeclipboard/internal/models"
 	"golang.design/x/clipboard"
+)
+
+var (
+	urlRegex   = regexp.MustCompile(`^(https?://|www\.)[^\s]+$`)
+	emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
+	phoneRegex = regexp.MustCompile(`^[\d\s\-\+\(\)]{7,20}$`)
 )
 
 func StartClipboardMonitor(onNewItem func(models.ClipboardItem)) {
@@ -54,6 +62,15 @@ func StartClipboardMonitor(onNewItem func(models.ClipboardItem)) {
 func handleTextClipboard(content string, onNewItem func(models.ClipboardItem)) {
 	lastContent = content
 
+	// Truncate if content exceeds max length
+	if len(content) > database.MaxTextLength {
+		content = content[:database.MaxTextLength] + "\n... (truncated)"
+		log.Printf("Content truncated to %d bytes\n", database.MaxTextLength)
+	}
+
+	// Detect content type
+	contentType := detectContentType(content)
+
 	// Check if this content already exists in the database
 	isDuplicate, err := database.CheckDuplicateContent(content)
 	if err != nil {
@@ -75,14 +92,19 @@ func handleTextClipboard(content string, onNewItem func(models.ClipboardItem)) {
 			return
 		}
 
-		log.Printf("Moving duplicate to top: %s...\n", truncateString(content, 50))
+		log.Printf("Moving duplicate to top (%s): %s...\n", contentType, truncateString(content, 50))
 		onNewItem(*existingItem)
 	} else {
-		// Insert new item
-		id, err := database.InsertClipboardItem(content, "text")
+		// Insert new item with detected type
+		id, err := database.InsertClipboardItem(content, contentType)
 		if err != nil {
 			log.Println("error inserting clipboard item:", err)
 		} else {
+			// Enforce history limit
+			if err := database.EnforceHistoryLimit(); err != nil {
+				log.Println("error enforcing history limit:", err)
+			}
+
 			items, err := database.GetClipboardHistory(1)
 			if err == nil && len(items) > 0 {
 				items[0].ID = int(id)
@@ -90,6 +112,42 @@ func handleTextClipboard(content string, onNewItem func(models.ClipboardItem)) {
 			}
 		}
 	}
+}
+
+// detectContentType analyzes the content and returns the appropriate type
+func detectContentType(content string) string {
+	trimmed := strings.TrimSpace(content)
+
+	// Check for URL (http, https, www)
+	if urlRegex.MatchString(trimmed) {
+		return "link"
+	}
+
+	// Check for email
+	if emailRegex.MatchString(trimmed) {
+		return "email"
+	}
+
+	// Check for phone number (digits, spaces, dashes, parentheses)
+	if phoneRegex.MatchString(trimmed) && containsDigits(trimmed, 7) {
+		return "phone"
+	}
+
+	return "text"
+}
+
+// containsDigits checks if the string contains at least n digits
+func containsDigits(s string, n int) bool {
+	count := 0
+	for _, r := range s {
+		if r >= '0' && r <= '9' {
+			count++
+			if count >= n {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func handleImageClipboard(imageData []byte, onNewItem func(models.ClipboardItem)) {
@@ -153,6 +211,11 @@ func handleImageClipboard(imageData []byte, onNewItem func(models.ClipboardItem)
 		// Clean up saved files if database insert fails
 		imageutil.DeleteImage(fullPath, thumbPath)
 		return
+	}
+
+	// Enforce history limit
+	if err := database.EnforceHistoryLimit(); err != nil {
+		log.Println("error enforcing history limit:", err)
 	}
 
 	// Notify UI

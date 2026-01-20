@@ -1,6 +1,7 @@
 package database
 
 import (
+	"log"
 	"time"
 
 	"github.com/Sirpyerre/pasteeclipboard/internal/imageutil"
@@ -199,4 +200,68 @@ func UpdateItemSensitivity(id int, isSensitive bool) error {
 	stmt := `UPDATE clipboard_history SET is_sensitive = ? WHERE id = ?`
 	_, err := db.Exec(stmt, isSensitive, id)
 	return err
+}
+
+// GetHistoryCount returns the total number of items in history
+func GetHistoryCount() (int, error) {
+	var count int
+	err := db.QueryRow("SELECT COUNT(*) FROM clipboard_history").Scan(&count)
+	return count, err
+}
+
+// EnforceHistoryLimit removes oldest items if history exceeds MaxHistoryItems
+func EnforceHistoryLimit() error {
+	count, err := GetHistoryCount()
+	if err != nil {
+		return err
+	}
+
+	if count <= MaxHistoryItems {
+		return nil
+	}
+
+	// Calculate how many items to delete
+	toDelete := count - MaxHistoryItems
+
+	// Get the oldest items that need to be deleted (with their image paths)
+	stmt := `SELECT id, COALESCE(image_path, ''), COALESCE(preview_path, '')
+			 FROM clipboard_history
+			 ORDER BY created_at ASC
+			 LIMIT ?`
+	rows, err := db.Query(stmt, toDelete)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	var idsToDelete []int
+	var imagesToDelete []struct{ imagePath, previewPath string }
+
+	for rows.Next() {
+		var id int
+		var imagePath, previewPath string
+		if err := rows.Scan(&id, &imagePath, &previewPath); err != nil {
+			return err
+		}
+		idsToDelete = append(idsToDelete, id)
+		if imagePath != "" || previewPath != "" {
+			imagesToDelete = append(imagesToDelete, struct{ imagePath, previewPath string }{imagePath, previewPath})
+		}
+	}
+
+	// Delete from database
+	for _, id := range idsToDelete {
+		_, err := db.Exec("DELETE FROM clipboard_history WHERE id = ?", id)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Delete associated image files
+	for _, img := range imagesToDelete {
+		imageutil.DeleteImage(img.imagePath, img.previewPath)
+	}
+
+	log.Printf("History limit enforced: deleted %d oldest items (limit: %d)\n", toDelete, MaxHistoryItems)
+	return nil
 }

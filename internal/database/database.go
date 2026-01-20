@@ -13,6 +13,11 @@ import (
 	"github.com/Sirpyerre/pasteeclipboard/internal/keystore"
 )
 
+const (
+	MaxTextLength   = 50 * 1024 // 50 KB max text length
+	MaxHistoryItems = 100       // Maximum items in history
+)
+
 var db *sql.DB
 
 func getDataDir() (string, error) {
