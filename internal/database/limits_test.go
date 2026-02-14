@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -181,6 +182,100 @@ func TestEnforceHistoryLimit_DeletesOldest(t *testing.T) {
 	}
 	if exists != 0 {
 		t.Error("Oldest item should have been deleted")
+	}
+}
+
+func TestUpdateItemFavorite(t *testing.T) {
+	cleanup := setupTestDB(t)
+	defer cleanup()
+
+	id, err := InsertClipboardItem("favorite test", "text")
+	if err != nil {
+		t.Fatalf("InsertClipboardItem failed: %v", err)
+	}
+
+	// Verify default is not favorite
+	item, err := GetItemByContent("favorite test")
+	if err != nil {
+		t.Fatalf("GetItemByContent failed: %v", err)
+	}
+	if item.IsFavorite {
+		t.Error("Expected IsFavorite to be false by default")
+	}
+
+	// Mark as favorite
+	if err := UpdateItemFavorite(int(id), true); err != nil {
+		t.Fatalf("UpdateItemFavorite failed: %v", err)
+	}
+
+	item, err = GetItemByContent("favorite test")
+	if err != nil {
+		t.Fatalf("GetItemByContent failed: %v", err)
+	}
+	if !item.IsFavorite {
+		t.Error("Expected IsFavorite to be true after update")
+	}
+
+	// Unmark as favorite
+	if err := UpdateItemFavorite(int(id), false); err != nil {
+		t.Fatalf("UpdateItemFavorite failed: %v", err)
+	}
+
+	item, err = GetItemByContent("favorite test")
+	if err != nil {
+		t.Fatalf("GetItemByContent failed: %v", err)
+	}
+	if item.IsFavorite {
+		t.Error("Expected IsFavorite to be false after unsetting")
+	}
+}
+
+func TestEnforceHistoryLimit_SkipsFavorites(t *testing.T) {
+	cleanup := setupTestDB(t)
+	defer cleanup()
+
+	// Insert MaxHistoryItems + 2 items
+	for i := 0; i < MaxHistoryItems+2; i++ {
+		_, err := InsertClipboardItem(fmt.Sprintf("item_%d", i), "text")
+		if err != nil {
+			t.Fatalf("InsertClipboardItem failed: %v", err)
+		}
+	}
+
+	// Mark the two oldest items as favorites
+	var ids []int
+	rows, err := db.Query("SELECT id FROM clipboard_history ORDER BY created_at ASC LIMIT 2")
+	if err != nil {
+		t.Fatalf("Query failed: %v", err)
+	}
+	for rows.Next() {
+		var id int
+		rows.Scan(&id)
+		ids = append(ids, id)
+	}
+	rows.Close()
+
+	for _, id := range ids {
+		if err := UpdateItemFavorite(id, true); err != nil {
+			t.Fatalf("UpdateItemFavorite failed: %v", err)
+		}
+	}
+
+	// Enforce limit
+	if err := EnforceHistoryLimit(); err != nil {
+		t.Fatalf("EnforceHistoryLimit failed: %v", err)
+	}
+
+	// Verify favorites were not deleted
+	for _, id := range ids {
+		var exists int
+		err := db.QueryRow("SELECT COUNT(*) FROM clipboard_history WHERE id = ?", id).Scan(&exists)
+		if err != nil {
+			t.Fatalf("Check existence failed: %v", err)
+		}
+		if exists != 1 {
+			t.Errorf("Favorite item %d should not have been deleted", id)
+		}
 	}
 }
 
