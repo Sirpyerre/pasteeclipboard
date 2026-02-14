@@ -11,6 +11,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
@@ -22,7 +23,7 @@ import (
 
 var revealedItems = make(map[int]bool)
 
-func CreateHistoryItemUI(item models.ClipboardItem, onDelete func(models.ClipboardItem), onRefresh func(), onCopy func()) fyne.CanvasObject {
+func CreateHistoryItemUI(item models.ClipboardItem, onDelete func(models.ClipboardItem), onRefresh func(), onCopy func(), win fyne.Window) fyne.CanvasObject {
 	var contentDisplay fyne.CanvasObject
 
 	if item.Type == "image" {
@@ -102,6 +103,42 @@ func CreateHistoryItemUI(item models.ClipboardItem, onDelete func(models.Clipboa
 	})
 	favButton.Importance = favImportance
 	actionButtons.Add(favButton)
+
+	// Add edit button for text items
+	if item.Type != "image" {
+		editButton := widget.NewButtonWithIcon("", theme.DocumentCreateIcon(), func() {
+			entry := widget.NewMultiLineEntry()
+			entry.SetText(item.Content)
+			entry.Wrapping = fyne.TextWrapWord
+			entry.SetMinRowsVisible(5)
+
+			formItems := []*widget.FormItem{
+				widget.NewFormItem("Content", entry),
+			}
+
+			dlg := dialog.NewForm("Edit Item", "Save", "Cancel", formItems, func(confirmed bool) {
+				if !confirmed {
+					return
+				}
+				newContent := entry.Text
+				if newContent == "" || newContent == item.Content {
+					return
+				}
+				newType := monitor.DetectContentType(newContent)
+				if err := database.UpdateItemContent(item.ID, newContent, newType); err != nil {
+					log.Printf("Failed to update item content: %v", err)
+					return
+				}
+				if onRefresh != nil {
+					onRefresh()
+				}
+			}, win)
+			dlg.Resize(fyne.NewSize(400, 300))
+			dlg.Show()
+		})
+		editButton.Importance = widget.LowImportance
+		actionButtons.Add(editButton)
+	}
 
 	// Add sensitivity toggle for text items (lock icon)
 	if item.Type != "image" {

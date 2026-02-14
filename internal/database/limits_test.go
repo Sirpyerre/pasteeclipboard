@@ -230,6 +230,38 @@ func TestUpdateItemFavorite(t *testing.T) {
 	}
 }
 
+func TestUpdateItemContent(t *testing.T) {
+	cleanup := setupTestDB(t)
+	defer cleanup()
+
+	id, err := InsertClipboardItem("hello world", "text")
+	if err != nil {
+		t.Fatalf("InsertClipboardItem failed: %v", err)
+	}
+
+	// Update content to a URL
+	if err := UpdateItemContent(int(id), "https://example.com", "link"); err != nil {
+		t.Fatalf("UpdateItemContent failed: %v", err)
+	}
+
+	item, err := GetItemByContent("https://example.com")
+	if err != nil {
+		t.Fatalf("GetItemByContent failed: %v", err)
+	}
+	if item.Content != "https://example.com" {
+		t.Errorf("Expected content %q, got %q", "https://example.com", item.Content)
+	}
+	if item.Type != "link" {
+		t.Errorf("Expected type %q, got %q", "link", item.Type)
+	}
+
+	// Verify old content no longer exists
+	_, err = GetItemByContent("hello world")
+	if err == nil {
+		t.Error("Old content should no longer exist")
+	}
+}
+
 func TestEnforceHistoryLimit_SkipsFavorites(t *testing.T) {
 	cleanup := setupTestDB(t)
 	defer cleanup()

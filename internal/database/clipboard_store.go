@@ -202,6 +202,13 @@ func UpdateItemFavorite(id int, isFavorite bool) error {
 	return err
 }
 
+// UpdateItemContent updates the content and type of a clipboard item
+func UpdateItemContent(id int, content string, itemType string) error {
+	stmt := `UPDATE clipboard_history SET content = ?, type = ? WHERE id = ?`
+	_, err := db.Exec(stmt, content, itemType, id)
+	return err
+}
+
 // UpdateItemSensitivity updates the sensitivity flag for a clipboard item
 func UpdateItemSensitivity(id int, isSensitive bool) error {
 	stmt := `UPDATE clipboard_history SET is_sensitive = ? WHERE id = ?`

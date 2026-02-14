@@ -231,6 +231,7 @@ func (p *PastyClipboard) updateHistoryUI(query string) {
 				func() {
 					p.Win.Hide()
 				},
+				p.Win,
 			))
 		}
 	} else {
