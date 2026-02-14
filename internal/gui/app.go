@@ -39,12 +39,14 @@ type PastyClipboard struct {
 	counterLabel     *widget.Label
 	clipboardHistory []models.ClipboardItem
 
-	currentPage    int
-	pageSize       int
-	pageLabel      *widget.Label
-	prevButton     *widget.Button
-	nextButton     *widget.Button
-	pageSizeSelect *widget.Select
+	currentPage       int
+	pageSize          int
+	pageLabel         *widget.Label
+	prevButton        *widget.Button
+	nextButton        *widget.Button
+	pageSizeSelect    *widget.Select
+	showFavoritesOnly bool
+	favToggle         *widget.Button
 }
 
 func NewPastyClipboard(a fyne.App, icon fyne.Resource) *PastyClipboard {
@@ -178,6 +180,9 @@ func (p *PastyClipboard) setupUI() {
 func (p *PastyClipboard) updateHistoryUI(query string) {
 	var filteredItems []models.ClipboardItem
 	for _, item := range p.clipboardHistory {
+		if p.showFavoritesOnly && !item.IsFavorite {
+			continue
+		}
 		if query == "" || strings.Contains(strings.ToLower(item.Content), strings.ToLower(query)) {
 			filteredItems = append(filteredItems, item)
 		}
@@ -265,7 +270,22 @@ func (p *PastyClipboard) searchBox() *fyne.Container {
 	}
 	searchIcon := widget.NewIcon(theme.SearchIcon())
 
-	return container.NewBorder(nil, nil, searchIcon, nil, searchEntry)
+	p.favToggle = widget.NewButton("☆ Favs", func() {
+		p.showFavoritesOnly = !p.showFavoritesOnly
+		if p.showFavoritesOnly {
+			p.favToggle.SetText("★ Favs")
+			p.favToggle.Importance = widget.HighImportance
+		} else {
+			p.favToggle.SetText("☆ Favs")
+			p.favToggle.Importance = widget.LowImportance
+		}
+		p.favToggle.Refresh()
+		p.currentPage = 1
+		p.updateHistoryUI(searchEntry.Text)
+	})
+	p.favToggle.Importance = widget.LowImportance
+
+	return container.NewBorder(nil, nil, searchIcon, p.favToggle, searchEntry)
 }
 
 func (p *PastyClipboard) paginator() *fyne.Container {

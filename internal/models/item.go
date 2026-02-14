@@ -7,4 +7,5 @@ type ClipboardItem struct {
 	ImagePath   string // Full path to the original image
 	PreviewPath string // Full path to the thumbnail preview
 	IsSensitive bool   // Whether content should be hidden by default
+	IsFavorite  bool   // Whether item is marked as favorite
 }

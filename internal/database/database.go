@@ -176,6 +176,7 @@ func migrateSchema() error {
 	hasPreviewPath := false
 	hasImageHash := false
 	hasIsSensitive := false
+	hasIsFavorite := false
 
 	for rows.Next() {
 		var cid int
@@ -196,6 +197,8 @@ func migrateSchema() error {
 			hasImageHash = true
 		case "is_sensitive":
 			hasIsSensitive = true
+		case "is_favorite":
+			hasIsFavorite = true
 		}
 	}
 
@@ -225,6 +228,13 @@ func migrateSchema() error {
 			return err
 		}
 		log.Println("Added is_sensitive column to clipboard_history table")
+	}
+
+	if !hasIsFavorite {
+		if _, err := db.Exec("ALTER TABLE clipboard_history ADD COLUMN is_favorite BOOLEAN DEFAULT 0"); err != nil {
+			return err
+		}
+		log.Println("Added is_favorite column to clipboard_history table")
 	}
 
 	return nil

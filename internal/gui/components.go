@@ -80,10 +80,33 @@ func CreateHistoryItemUI(item models.ClipboardItem, onDelete func(models.Clipboa
 	// Create action buttons container
 	actionButtons := container.NewHBox()
 
+	// Add favorite toggle button
+	var favLabel string
+	var favImportance widget.Importance
+	if item.IsFavorite {
+		favLabel = "★"
+		favImportance = widget.HighImportance
+	} else {
+		favLabel = "☆"
+		favImportance = widget.LowImportance
+	}
+	favButton := widget.NewButton(favLabel, func() {
+		newFavorite := !item.IsFavorite
+		if err := database.UpdateItemFavorite(item.ID, newFavorite); err != nil {
+			log.Printf("Failed to update favorite: %v", err)
+			return
+		}
+		if onRefresh != nil {
+			onRefresh()
+		}
+	})
+	favButton.Importance = favImportance
+	actionButtons.Add(favButton)
+
 	// Add sensitivity toggle for text items (lock icon)
 	if item.Type != "image" {
 		var lockIcon fyne.Resource
-		var lockImportance widget.ButtonImportance
+		var lockImportance widget.Importance
 		if item.IsSensitive {
 			lockIcon = theme.VisibilityOffIcon()
 			lockImportance = widget.HighImportance

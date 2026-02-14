@@ -33,6 +33,7 @@ func setupTestDB(t *testing.T) func() {
 			preview_path TEXT,
 			image_hash TEXT,
 			is_sensitive BOOLEAN DEFAULT 0,
+			is_favorite BOOLEAN DEFAULT 0,
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		)
 	`)
