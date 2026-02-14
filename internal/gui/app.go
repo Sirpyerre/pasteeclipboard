@@ -208,8 +208,8 @@ func (p *PastyClipboard) updateHistoryUI(query string) {
 	if totalItems > 0 {
 		visibleItems := filteredItems[startIndex:endIndex]
 
-		for _, item := range visibleItems {
-			p.historyContainer.Add(CreateHistoryItemUI(item,
+		for i, item := range visibleItems {
+			p.historyContainer.Add(CreateHistoryItemUI(item, i,
 				func(deletedItem models.ClipboardItem) {
 					_ = database.DeleteClipboardItem(item.ID)
 					var newHistory []models.ClipboardItem
