@@ -66,6 +66,7 @@
 
 ### Favorites & Editing (v0.3.0)
 
+
 - **⭐ Favorites** — mark clipboard items as favorites with a star toggle
   - Filter view to show only favorites
   - Favorites are preserved and not affected by history limits
@@ -73,6 +74,28 @@
   - Access via context menu (⋮ → Edit)
   - Multi-line editor dialog with Save/Cancel
   - Content type auto-detected after editing (URL, email, phone, etc.)
+- **📋 Content Type Detection (NEW in v0.2.1)**
+  - Automatic detection of clipboard content types
+  - Distinct icons for each type:
+    - 📄 Text (DocumentIcon)
+    - 🔗 Links/URLs (ComputerIcon)
+    - 📧 Email addresses (MailComposeIcon)
+    - 👤 Phone numbers (AccountIcon)
+    - 🖼️ Images (MediaPhotoIcon)
+
+- **⚡ Auto-hide Window (NEW in v0.2.1)**
+  - Window automatically hides after copying an item
+  - Allows immediate pasting without manually closing the window
+
+- **📏 Storage Limits (NEW in v0.2.1)**
+  - Maximum text length: 50 KB per item (truncated with marker if exceeded)
+  - Maximum history items: 100 (oldest items automatically removed)
+  - Prevents database saturation and maintains performance
+
+- Persistent clipboard history using SQLite (now with optional encryption)
+- Simple and intuitive UI built with [Fyne](https://fyne.io)
+- One-click to copy, delete, or clear items
+- Filtering and search functionality
 
 ### Enhanced UI (v0.3.0)
 
@@ -389,6 +412,12 @@ Remove-Item -Recurse -Force C:\path\to\pasteeclipboard
 
 The content type (URL, email, phone, text) is automatically re-detected after saving. Editing is only available for text items.
 
+## 🔧 Configuration
+
+**Built-in Limits (v0.2.1+)**
+- **Max text length**: 50 KB per clipboard item (content is truncated if exceeded)
+- **Max history items**: 100 items (oldest items are automatically removed when limit is reached)
+
 ### Sensitive Content Protection
 
 1. Click **⋮** → toggle sensitivity with the eye icon
@@ -467,6 +496,16 @@ pasteeclipboard/
 - **App not visible?** It runs as a UI Agent — look for the Pastee icon in the menu bar (top-right)
 - **Dock icon showing?** Rebuild with `./package-mac.sh`
 - **Keychain prompt:** Choose "Always Allow" when macOS asks for Keychain access
+- Make sure **accessibility permissions** are granted to your terminal or compiled binary
+- Grant permissions in System Preferences > Security & Privacy > Privacy > Accessibility
+- **App not visible after launching?** The app runs as a UI Agent and appears only in the menu bar (top-right). Look for the Pastee icon near the clock.
+- **Still seeing Dock icon?** Rebuild the app with `./package-mac.sh` to ensure LSUIElement is properly set
+- **Global hotkey**: On macOS, the shortcut is **Ctrl + Option + P** (Option is the Alt key)
+- **"The application cannot be opened for an unexpected reason" error**: This occurs when the app bundle's code signature is invalidated after modifying the Info.plist. The `package-mac.sh` script automatically fixes this, but if you encounter this error manually, run:
+  ```bash
+  xattr -cr pastee.app
+  codesign --force --deep --sign - pastee.app
+  ```
 
 ### Windows
 
@@ -553,6 +592,44 @@ make clean && make   # Rebuild after changes
 
 ### v0.1.0 — Initial Release
 
+**v0.2.1 - UX Improvements & Storage Limits** (January 2025)
+- 📋 **Content Type Detection**: Automatic detection with distinct icons for text, links, emails, phone numbers, and images
+- ⚡ **Auto-hide Window**: Window automatically hides after copying an item for seamless workflow
+- 📏 **Storage Limits**: 50 KB max text length and 100 max history items to prevent database saturation
+- 🔧 **macOS Package Fix**: Fixed code signing issue after plist modification in `package-mac.sh`
+
+**v0.2.0 - Security & Privacy Features** (December 2024)
+- 🔐 **Database Encryption**: AES-256 encryption using SQLCipher
+  - Automatic encryption key generation (256-bit)
+  - Secure key storage in system keychain (macOS Keychain, Windows Credential Manager, Linux Secret Service)
+  - One-click migration from unencrypted to encrypted database
+  - Automatic backup creation before migration
+  - Cross-platform keychain integration
+- 👁️ **Sensitive Content Protection**: Mark and hide sensitive clipboard items
+  - One-click toggle with eye icon button
+  - Content masked as "•••••••• (click to reveal)"
+  - Click-to-reveal functionality for temporary viewing
+  - Clean and intuitive UX design
+  - Per-item sensitivity flag stored in database
+- 🏗️ **Architecture improvements**:
+  - New `internal/encryption/` package for SQLCipher integration
+  - New `internal/keystore/` package with platform-specific implementations
+  - Enhanced database layer with encryption support
+  - Migration dialogs and user flow
+- 📦 **Dependencies updated**:
+  - Added SQLCipher (AES-256 encrypted SQLite)
+  - Added platform-specific keychain libraries
+  - Updated database schema with `is_sensitive` column
+
+**v0.1.1 - macOS UI Agent Enhancement** (Agust 2024)
+- 🍎 macOS now runs as a UI Agent (menu bar only, no Dock icon)
+- 🔧 Added `activation_policy_darwin.go` for proper macOS integration
+- 📦 Added `package-mac.sh` script for building macOS app bundles
+- ⚙️ Added `FyneApp.toml` for app metadata configuration
+- 🎯 Platform-specific hotkey modifiers (Ctrl+Option+P on macOS)
+- 📝 Updated documentation with macOS-specific instructions
+
+**v0.1.0 - Initial Release**
 - 🎉 Basic UI with Fyne
 - 📋 Clipboard monitoring and persistent history
 - 🔍 Search and filter
