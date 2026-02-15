@@ -22,8 +22,10 @@ const (
 	placeholderText    = "Search ..."
 	clearAllBtnText    = "Clear All"
 	showLabelText      = "Show:"
+	firstBtnText       = "First"
 	prevBtnText        = "Previous"
 	nextBtnText        = "Next"
+	lastBtnText        = "Last"
 	confirmDeleteTitle = "Confirm Delete"
 	confirmDeleteMsg   = "Are you sure you want to delete all history?"
 	noHistoryText      = "No clipboard history available."
@@ -42,8 +44,10 @@ type PastyClipboard struct {
 	currentPage       int
 	pageSize          int
 	pageLabel         *widget.Label
+	firstButton       *widget.Button
 	prevButton        *widget.Button
 	nextButton        *widget.Button
+	lastButton        *widget.Button
 	pageSizeSelect    *widget.Select
 	showFavoritesOnly bool
 	favToggle         *widget.Button
@@ -238,24 +242,29 @@ func (p *PastyClipboard) updateHistoryUI(query string) {
 		p.historyContainer.Add(widget.NewLabel(noHistoryText))
 	}
 
-	// update paginator
 	if totalPages == 0 {
 		p.pageLabel.SetText("Page 0 of 0")
-		p.prevButton.Disabled()
-		p.nextButton.Disabled()
+		p.firstButton.Disable()
+		p.prevButton.Disable()
+		p.nextButton.Disable()
+		p.lastButton.Disable()
 	} else {
 		p.pageLabel.SetText(fmt.Sprintf("Page %d of %d", p.currentPage, totalPages))
 
 		if p.currentPage <= 1 {
-			p.prevButton.Disabled()
+			p.firstButton.Disable()
+			p.prevButton.Disable()
 		} else {
+			p.firstButton.Enable()
 			p.prevButton.Enable()
 		}
 
 		if p.currentPage >= totalPages {
-			p.nextButton.Disabled()
+			p.nextButton.Disable()
+			p.lastButton.Disable()
 		} else {
 			p.nextButton.Enable()
+			p.lastButton.Enable()
 		}
 	}
 
@@ -292,12 +301,25 @@ func (p *PastyClipboard) searchBox() *fyne.Container {
 func (p *PastyClipboard) paginator() *fyne.Container {
 	p.pageLabel = widget.NewLabel("")
 
+	p.firstButton = widget.NewButton(firstBtnText, func() {
+		p.firstPage()
+	})
+	p.firstButton.Importance = widget.LowImportance
+
 	p.prevButton = widget.NewButton(prevBtnText, func() {
 		p.prevPage()
 	})
+	p.prevButton.Importance = widget.LowImportance
+
 	p.nextButton = widget.NewButton(nextBtnText, func() {
 		p.nextPage()
 	})
+	p.nextButton.Importance = widget.LowImportance
+
+	p.lastButton = widget.NewButton(lastBtnText, func() {
+		p.lastPage()
+	})
+	p.lastButton.Importance = widget.LowImportance
 
 	p.pageSizeSelect = widget.NewSelect(pageSizeOptions, func(s string) {
 		size, _ := strconv.Atoi(s)
@@ -307,9 +329,11 @@ func (p *PastyClipboard) paginator() *fyne.Container {
 	p.pageSizeSelect.SetSelected(strconv.Itoa(p.pageSize))
 
 	return container.NewHBox(
+		p.firstButton,
 		p.prevButton,
 		p.pageLabel,
 		p.nextButton,
+		p.lastButton,
 	)
 }
 
@@ -333,16 +357,29 @@ func (p *PastyClipboard) clearAll() *widget.Button {
 }
 
 func (p *PastyClipboard) bottomBar() *fyne.Container {
-	bottomBar := container.NewHBox(
+	center := p.paginator()
+	pageSizeWrapper := container.New(&fixedWidthLayout{width: 80}, p.pageSizeSelect)
+	left := container.NewHBox(
 		widget.NewLabel(showLabelText),
-		p.pageSizeSelect,
-		widget.NewSeparator(),
-		p.paginator(),
-		widget.NewSeparator(),
-		p.clearAll(),
+		pageSizeWrapper,
 	)
+	right := container.NewHBox(p.clearAll())
 
-	return bottomBar
+	return container.NewBorder(nil, nil, left, right, center)
+}
+
+func (p *PastyClipboard) firstPage() {
+	p.currentPage = 1
+	p.updateHistoryUI("")
+}
+
+func (p *PastyClipboard) lastPage() {
+	totalItems := len(p.clipboardHistory)
+	totalPages := int(math.Ceil(float64(totalItems) / float64(p.pageSize)))
+	if totalPages > 0 {
+		p.currentPage = totalPages
+	}
+	p.updateHistoryUI("")
 }
 
 func (p *PastyClipboard) prevPage() {
@@ -358,6 +395,21 @@ func (p *PastyClipboard) nextPage() {
 	if p.currentPage < totalPages {
 		p.currentPage++
 		p.updateHistoryUI("")
+	}
+}
+
+type fixedWidthLayout struct {
+	width float32
+}
+
+func (f *fixedWidthLayout) MinSize(_ []fyne.CanvasObject) fyne.Size {
+	return fyne.NewSize(f.width, 0)
+}
+
+func (f *fixedWidthLayout) Layout(objects []fyne.CanvasObject, size fyne.Size) {
+	for _, o := range objects {
+		o.Resize(fyne.NewSize(f.width, size.Height))
+		o.Move(fyne.NewPos(0, 0))
 	}
 }
 
