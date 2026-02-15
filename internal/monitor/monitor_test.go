@@ -20,9 +20,9 @@ func TestDetectContentType_URL(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		result := detectContentType(tt.input)
+		result := DetectContentType(tt.input)
 		if result != tt.expected {
-			t.Errorf("detectContentType(%q) = %q, want %q", tt.input, result, tt.expected)
+			t.Errorf("DetectContentType(%q) = %q, want %q", tt.input, result, tt.expected)
 		}
 	}
 }
@@ -39,9 +39,9 @@ func TestDetectContentType_Email(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		result := detectContentType(tt.input)
+		result := DetectContentType(tt.input)
 		if result != tt.expected {
-			t.Errorf("detectContentType(%q) = %q, want %q", tt.input, result, tt.expected)
+			t.Errorf("DetectContentType(%q) = %q, want %q", tt.input, result, tt.expected)
 		}
 	}
 }
@@ -58,9 +58,9 @@ func TestDetectContentType_Phone(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		result := detectContentType(tt.input)
+		result := DetectContentType(tt.input)
 		if result != tt.expected {
-			t.Errorf("detectContentType(%q) = %q, want %q", tt.input, result, tt.expected)
+			t.Errorf("DetectContentType(%q) = %q, want %q", tt.input, result, tt.expected)
 		}
 	}
 }
@@ -78,9 +78,9 @@ func TestDetectContentType_Text(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		result := detectContentType(tt.input)
+		result := DetectContentType(tt.input)
 		if result != tt.expected {
-			t.Errorf("detectContentType(%q) = %q, want %q", tt.input, result, tt.expected)
+			t.Errorf("DetectContentType(%q) = %q, want %q", tt.input, result, tt.expected)
 		}
 	}
 }

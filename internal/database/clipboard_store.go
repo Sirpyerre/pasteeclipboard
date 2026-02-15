@@ -48,7 +48,7 @@ func InsertImageItem(imagePath, previewPath, imageHash, itemType string) (int64,
 }
 
 func GetClipboardHistory(limit int) ([]models.ClipboardItem, error) {
-	stmt := `SELECT id, content, type, COALESCE(image_path, ''), COALESCE(preview_path, ''), COALESCE(is_sensitive, 0) FROM clipboard_history ORDER BY created_at DESC LIMIT ?`
+	stmt := `SELECT id, content, type, COALESCE(image_path, ''), COALESCE(preview_path, ''), COALESCE(is_sensitive, 0), COALESCE(is_favorite, 0) FROM clipboard_history ORDER BY created_at DESC LIMIT ?`
 	rows, err := db.Query(stmt, limit)
 	if err != nil {
 		return nil, err
@@ -58,7 +58,7 @@ func GetClipboardHistory(limit int) ([]models.ClipboardItem, error) {
 	var items []models.ClipboardItem
 	for rows.Next() {
 		var item models.ClipboardItem
-		if err := rows.Scan(&item.ID, &item.Content, &item.Type, &item.ImagePath, &item.PreviewPath, &item.IsSensitive); err != nil {
+		if err := rows.Scan(&item.ID, &item.Content, &item.Type, &item.ImagePath, &item.PreviewPath, &item.IsSensitive, &item.IsFavorite); err != nil {
 			return nil, err
 		}
 		items = append(items, item)
@@ -146,9 +146,9 @@ func CheckDuplicateContent(content string) (bool, error) {
 
 // GetItemByContent retrieves an existing item by its content
 func GetItemByContent(content string) (*models.ClipboardItem, error) {
-	stmt := `SELECT id, content, type, COALESCE(image_path, ''), COALESCE(preview_path, ''), COALESCE(is_sensitive, 0) FROM clipboard_history WHERE content = ? LIMIT 1`
+	stmt := `SELECT id, content, type, COALESCE(image_path, ''), COALESCE(preview_path, ''), COALESCE(is_sensitive, 0), COALESCE(is_favorite, 0) FROM clipboard_history WHERE content = ? LIMIT 1`
 	var item models.ClipboardItem
-	err := db.QueryRow(stmt, content).Scan(&item.ID, &item.Content, &item.Type, &item.ImagePath, &item.PreviewPath, &item.IsSensitive)
+	err := db.QueryRow(stmt, content).Scan(&item.ID, &item.Content, &item.Type, &item.ImagePath, &item.PreviewPath, &item.IsSensitive, &item.IsFavorite)
 	if err != nil {
 		return nil, err
 	}
@@ -157,9 +157,9 @@ func GetItemByContent(content string) (*models.ClipboardItem, error) {
 
 // GetItemByImagePath retrieves an existing item by its image path
 func GetItemByImagePath(imagePath string) (*models.ClipboardItem, error) {
-	stmt := `SELECT id, content, type, COALESCE(image_path, ''), COALESCE(preview_path, ''), COALESCE(is_sensitive, 0) FROM clipboard_history WHERE image_path = ? LIMIT 1`
+	stmt := `SELECT id, content, type, COALESCE(image_path, ''), COALESCE(preview_path, ''), COALESCE(is_sensitive, 0), COALESCE(is_favorite, 0) FROM clipboard_history WHERE image_path = ? LIMIT 1`
 	var item models.ClipboardItem
-	err := db.QueryRow(stmt, imagePath).Scan(&item.ID, &item.Content, &item.Type, &item.ImagePath, &item.PreviewPath, &item.IsSensitive)
+	err := db.QueryRow(stmt, imagePath).Scan(&item.ID, &item.Content, &item.Type, &item.ImagePath, &item.PreviewPath, &item.IsSensitive, &item.IsFavorite)
 	if err != nil {
 		return nil, err
 	}
@@ -186,13 +186,27 @@ func CheckDuplicateImageHash(imageHash string) (bool, error) {
 
 // GetItemByImageHash retrieves an existing item by its image hash
 func GetItemByImageHash(imageHash string) (*models.ClipboardItem, error) {
-	stmt := `SELECT id, content, type, COALESCE(image_path, ''), COALESCE(preview_path, ''), COALESCE(is_sensitive, 0) FROM clipboard_history WHERE image_hash = ? LIMIT 1`
+	stmt := `SELECT id, content, type, COALESCE(image_path, ''), COALESCE(preview_path, ''), COALESCE(is_sensitive, 0), COALESCE(is_favorite, 0) FROM clipboard_history WHERE image_hash = ? LIMIT 1`
 	var item models.ClipboardItem
-	err := db.QueryRow(stmt, imageHash).Scan(&item.ID, &item.Content, &item.Type, &item.ImagePath, &item.PreviewPath, &item.IsSensitive)
+	err := db.QueryRow(stmt, imageHash).Scan(&item.ID, &item.Content, &item.Type, &item.ImagePath, &item.PreviewPath, &item.IsSensitive, &item.IsFavorite)
 	if err != nil {
 		return nil, err
 	}
 	return &item, nil
+}
+
+// UpdateItemFavorite updates the favorite flag for a clipboard item
+func UpdateItemFavorite(id int, isFavorite bool) error {
+	stmt := `UPDATE clipboard_history SET is_favorite = ? WHERE id = ?`
+	_, err := db.Exec(stmt, isFavorite, id)
+	return err
+}
+
+// UpdateItemContent updates the content and type of a clipboard item
+func UpdateItemContent(id int, content string, itemType string) error {
+	stmt := `UPDATE clipboard_history SET content = ?, type = ? WHERE id = ?`
+	_, err := db.Exec(stmt, content, itemType, id)
+	return err
 }
 
 // UpdateItemSensitivity updates the sensitivity flag for a clipboard item
@@ -209,7 +223,7 @@ func GetHistoryCount() (int, error) {
 	return count, err
 }
 
-// EnforceHistoryLimit removes oldest items if history exceeds MaxHistoryItems
+// EnforceHistoryLimit removes oldest non-favorite items if history exceeds MaxHistoryItems
 func EnforceHistoryLimit() error {
 	count, err := GetHistoryCount()
 	if err != nil {
@@ -223,9 +237,10 @@ func EnforceHistoryLimit() error {
 	// Calculate how many items to delete
 	toDelete := count - MaxHistoryItems
 
-	// Get the oldest items that need to be deleted (with their image paths)
+	// Get the oldest non-favorite items that need to be deleted (with their image paths)
 	stmt := `SELECT id, COALESCE(image_path, ''), COALESCE(preview_path, '')
 			 FROM clipboard_history
+			 WHERE COALESCE(is_favorite, 0) = 0
 			 ORDER BY created_at ASC
 			 LIMIT ?`
 	rows, err := db.Query(stmt, toDelete)

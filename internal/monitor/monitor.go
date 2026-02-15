@@ -69,7 +69,7 @@ func handleTextClipboard(content string, onNewItem func(models.ClipboardItem)) {
 	}
 
 	// Detect content type
-	contentType := detectContentType(content)
+	contentType := DetectContentType(content)
 
 	// Check if this content already exists in the database
 	isDuplicate, err := database.CheckDuplicateContent(content)
@@ -114,8 +114,8 @@ func handleTextClipboard(content string, onNewItem func(models.ClipboardItem)) {
 	}
 }
 
-// detectContentType analyzes the content and returns the appropriate type
-func detectContentType(content string) string {
+// DetectContentType analyzes the content and returns the appropriate type
+func DetectContentType(content string) string {
 	trimmed := strings.TrimSpace(content)
 
 	// Check for URL (http, https, www)
